@@ -1,7 +1,8 @@
 from programas import lectura_datos
 from muestra import Muestra
-respuesta = True
 import numpy as np
+
+respuesta = True
 
 while respuesta == True:
     #meter nombre de todas las muestras
@@ -16,10 +17,11 @@ while respuesta == True:
         path_ftir_muestras = lectura_datos.archivo_tfir("Selecciona archivo FTIR de las muestras \n o muestras y referencias")
         path_ftir_referencias = lectura_datos.archivo_tfir("Selecciona archivo FTIR de las referencias")
 
-        if path_ftir_muestras and path_ftir_referencias:
-            dos_tfir = True
+        if datos_basicos["FTIR"] == "Con ventana":
+            ventana_ftir = True
         else:
-            dos_tfir = False
+            ventana_fitr = False
+
     if "Espectrofotómetro" in datos_basicos["aparatos"]:
         print("leer datos espectofotómetro")
         path_espectofotometro = lectura_datos.carpeta_espectofotometro()
@@ -27,11 +29,23 @@ while respuesta == True:
     #preguntar por referencias uv/ir:
 
     for nombre in nombres_muestras:
+        
         print(f"Analizando muestra {nombre}")
-        #leer ftir si hay: path de reforo, zero, medidas (+refnegro, ventana, ventanaoro, ventananegro)
-        #referencias ftir
-        #leer carpeta de especofotómetro si hay: path zero, base, muestras, (ventana y ventana base)
-        #referencias uv
+        if "FTIR" in datos_basicos["aparatos"]:
+            if path_ftir_muestras and path_ftir_referencias:
+                #leer ftir si hay: path de reforo, zero, medidas (+refnegro, ventana, ventanaoro, ventananegro)
+                archivos_muestra_ir = lectura_datos.archivos_ftir_muestras(path_ftir_muestras, ventana_ftir, "muestras") #cambiar esta función
+                archivos_zero_base_ir = lectura_datos.archivos_ftir_referencias(path_ftir_referencias, ventana_ftir, "referencias")
+                dos_ftir = True
+                #referencias ftir <- Falta
+            else:
+                archivos_ir = lectura_datos.archivos_ftir_muestras(path_ftir_muestras, ventana_ftir, "ambos")
+                dos_ftir = False
+        
+        if "Espectrofotómetro" in datos_basicos["aparatos"]:
+            #leer carpeta de espectofotómetro si hay: path zero, base, muestras, (ventana y ventana base)
+            archivos_zero_base_uv, archivos_muestra_uv = lectura_datos.espectro_medidas_zero_base_auto(nombre, path_espectofotometro)
+            #referencias uv <- Falta
         #meter datos en la muestra
         if datos_basicos["medida"] == "Reflectancia":
             print("Reflectancia")

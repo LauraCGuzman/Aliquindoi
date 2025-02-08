@@ -214,6 +214,73 @@ def carpeta_espectofotometro():
     # Devolver las rutas seleccionadas
     return carpeta
 
+def espectro_medidas_zero_base_auto(muestra, carpeta):
+
+    archivos_base = encontrar_archivos_asc_por_nombre("base_", carpeta)
+    archivos_zero = encontrar_archivos_asc_por_nombre("zero_", carpeta)
+    archivos_muestra = encontrar_archivos_asc_por_nombre(muestra, carpeta)
+
+    if len(archivos_base) > 1:
+        # Leer la fecha y hora de los archivos base y el archivo de muestra
+        fechas_base = []
+        for archivo in archivos_base:
+            with open(os.path.join(carpeta, archivo), 'r') as f:
+                lineas = f.readlines()
+                fecha_base = lineas[3].strip()  # Línea 3 (índice 2)
+                hora_base = lineas[4].strip()  # Línea 4 (índice 3)
+                datetime_base = datetime.strptime(f"{fecha_base} {hora_base}", "%y/%m/%d %H:%M:%S.%f")
+                fechas_base.append((archivo, datetime_base))
+
+        with open(os.path.join(carpeta, archivos_muestra[0]), 'r') as f:
+            lineas = f.readlines()
+            fecha_muestra = lineas[3].strip()  # Línea 3 (índice 2)
+            hora_muestra = lineas[4].strip()  # Línea 4 (índice 3)
+            datetime_muestra = datetime.strptime(f"{fecha_muestra} {hora_muestra}", "%y/%m/%d %H:%M:%S.%f")
+
+        # Encontrar el archivo base con la fecha más cercana a la de la muestra
+        archivo_base_cercano = min(fechas_base, key=lambda x: abs(x[1] - datetime_muestra))
+
+        # Dejar solo el archivo base más cercano
+        archivos_base = [archivo_base_cercano[0]]
+
+    archivos_zero_base = {"ZeroLine": archivos_zero[0], "BaseLine": archivos_base[0]}
+    
+    return archivos_zero_base, archivos_muestra
+
+def ftir_medidas_auto(muestra, archivo_tfir, ventana=False, tipo_ftir="ambos"):
+    # Leer las hojas del archivo Excel
+    try:
+        hojas = pd.ExcelFile(archivo_tfir).sheet_names
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo leer el archivo Excel.\n{e}")
+        return None
+
+    # Buscar hojas según patrones
+    baseline = [hoja for hoja in hojas if hoja.startswith("base_")]
+    zeroline = [hoja for hoja in hojas if hoja.startswith("zero_")]
+    lista_muestras = [hoja for hoja in hojas if hoja.startswith(muestra)]
+
+    # Validar que se hayan encontrado resultados únicos para baseline y zeroline
+    if len(baseline) != 1:
+        messagebox.showerror("Error", "Debe haber exactamente una hoja que comience con 'base_'.")
+        return None
+    if len(zeroline) != 1:
+        messagebox.showerror("Error", "Debe haber exactamente una hoja que comience con 'zero_'.")
+        return None
+    if not lista_muestras:
+        messagebox.showerror("Error", f"No se encontraron hojas que comiencen con '{muestra}'.")
+        return None
+
+    # Construir el resultado
+    resultado = {
+        "archivo": archivo_tfir,
+        "baseline": baseline[0],  # Seleccionar el único valor
+        "zeroline": zeroline[0],  # Seleccionar el único valor
+        "muestras": lista_muestras  # Lista de muestras encontradas
+    }
+
+    return resultado
+
 #funciones no usadas, pendientes de revisar
 def preguntar_dato_simple(titulo, pregunta):
     # Crear la ventana principal
@@ -317,39 +384,6 @@ def archivo_tfir_base_zero_samples():
     # Devolver el resultado
     return resultado
 
-def ftir_medidas_auto(muestra, archivo_tfir):
-    # Leer las hojas del archivo Excel
-    try:
-        hojas = pd.ExcelFile(archivo_tfir).sheet_names
-    except Exception as e:
-        messagebox.showerror("Error", f"No se pudo leer el archivo Excel.\n{e}")
-        return None
-
-    # Buscar hojas según patrones
-    baseline = [hoja for hoja in hojas if hoja.startswith("base_")]
-    zeroline = [hoja for hoja in hojas if hoja.startswith("zero_")]
-    lista_muestras = [hoja for hoja in hojas if hoja.startswith(muestra)]
-
-    # Validar que se hayan encontrado resultados únicos para baseline y zeroline
-    if len(baseline) != 1:
-        messagebox.showerror("Error", "Debe haber exactamente una hoja que comience con 'base_'.")
-        return None
-    if len(zeroline) != 1:
-        messagebox.showerror("Error", "Debe haber exactamente una hoja que comience con 'zero_'.")
-        return None
-    if not lista_muestras:
-        messagebox.showerror("Error", f"No se encontraron hojas que comiencen con '{muestra}'.")
-        return None
-
-    # Construir el resultado
-    resultado = {
-        "archivo": archivo_tfir,
-        "baseline": baseline[0],  # Seleccionar el único valor
-        "zeroline": zeroline[0],  # Seleccionar el único valor
-        "muestras": lista_muestras  # Lista de muestras encontradas
-    }
-
-    return resultado
 
 def archivos_espectofotometro():
     print("leyendo resultados del espectofotómetro")
@@ -485,37 +519,6 @@ def encontrar_archivos_asc_por_nombre(nombre, carpeta):
                 ruta_completa = os.path.join(raiz, archivo)
                 archivos_encontrados.append(ruta_completa)
     return archivos_encontrados
-def espectro_medidas_zero_base_auto(muestra, carpeta):
-
-    archivos_base = encontrar_archivos_asc_por_nombre("base_", carpeta)
-    archivos_zero = encontrar_archivos_asc_por_nombre("zero_", carpeta)
-    archivos_muestra = encontrar_archivos_asc_por_nombre(muestra, carpeta)
-
-    if len(archivos_base) > 1:
-        # Leer la fecha y hora de los archivos base y el archivo de muestra
-        fechas_base = []
-        for archivo in archivos_base:
-            with open(os.path.join(carpeta, archivo), 'r') as f:
-                lineas = f.readlines()
-                fecha_base = lineas[3].strip()  # Línea 3 (índice 2)
-                hora_base = lineas[4].strip()  # Línea 4 (índice 3)
-                datetime_base = datetime.strptime(f"{fecha_base} {hora_base}", "%y/%m/%d %H:%M:%S.%f")
-                fechas_base.append((archivo, datetime_base))
-
-        with open(os.path.join(carpeta, archivos_muestra[0]), 'r') as f:
-            lineas = f.readlines()
-            fecha_muestra = lineas[3].strip()  # Línea 3 (índice 2)
-            hora_muestra = lineas[4].strip()  # Línea 4 (índice 3)
-            datetime_muestra = datetime.strptime(f"{fecha_muestra} {hora_muestra}", "%y/%m/%d %H:%M:%S.%f")
-
-        # Encontrar el archivo base con la fecha más cercana a la de la muestra
-        archivo_base_cercano = min(fechas_base, key=lambda x: abs(x[1] - datetime_muestra))
-
-        # Dejar solo el archivo base más cercano
-        archivos_base = [archivo_base_cercano[0]]
-
-    archivos_zero_base = {"ZeroLine": archivos_zero[0], "BaseLine": archivos_base[0]}
-    return archivos_zero_base, archivos_muestra
 
 
 #dependiendo de si es UV o IR, se lee una wavelength u otra
