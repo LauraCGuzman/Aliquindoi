@@ -2,15 +2,15 @@ import pandas as pd
 import numpy as np
 import re
 class Muestra:
-    def __init__(self, nombre_muestra, archivo_tfir, file_path_zero_base, file_paths_muestras, col_ir_ref,
-                 col_uv_ref, datos_basicos):
+    def __init__(self, nombre_muestra, archivo_tfir, file_path_zero_base_uv, file_paths_muestras_uv, referencias_ir,
+                 referencias_uv, datos_basicos):
         self.nombre = nombre_muestra
         self.archivo_tfir = archivo_tfir
-        self.lista_espect_muestras = file_paths_muestras
-        self.path_zero = file_path_zero_base["ZeroLine"]
-        self.path_base = file_path_zero_base["BaseLine"]
-        self.col_ir_ref = col_ir_ref
-        self.col_uv_ref = col_uv_ref
+        self.lista_espect_muestras = file_paths_muestras_uv
+        self.path_zero = file_path_zero_base_uv["ZeroLine"]
+        self.path_base = file_path_zero_base_uv["BaseLine"]
+        self.col_ir_ref = referencias_ir
+        self.col_uv_ref = referencias_uv
         self.tipo = datos_basicos["item"]
         self.modo = datos_basicos["mode"]
         self.test = datos_basicos["test"]

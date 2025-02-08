@@ -247,7 +247,7 @@ def espectro_medidas_zero_base_auto(muestra, carpeta):
     
     return archivos_zero_base, archivos_muestra
 
-def ftir_medidas_auto(muestra, archivo_tfir, ventana=False, tipo_ftir="ambos"):
+def ftir_medidas_auto(muestra, archivo_tfir, ventana=False, tipo_ftir="ambos"): #falta ventana, y construir el diccionario completo
     # Leer las hojas del archivo Excel
     try:
         hojas = pd.ExcelFile(archivo_tfir).sheet_names
@@ -256,20 +256,19 @@ def ftir_medidas_auto(muestra, archivo_tfir, ventana=False, tipo_ftir="ambos"):
         return None
 
     # Buscar hojas según patrones
-    baseline = [hoja for hoja in hojas if hoja.startswith("base_")]
-    zeroline = [hoja for hoja in hojas if hoja.startswith("zero_")]
-    lista_muestras = [hoja for hoja in hojas if hoja.startswith(muestra)]
+    if tipo_ftir == "ambos":
+        baseline = [hoja for hoja in hojas if hoja.startswith("base_")]
+        zeroline = [hoja for hoja in hojas if hoja.startswith("zero_")]
+        lista_muestras = [hoja for hoja in hojas if hoja.startswith(muestra)]
+    elif tipo_ftir == "muestras":
+        baseline = ""
+        zeroline = ""
+        lista_muestras = [hoja for hoja in hojas if hoja.startswith(muestra)]
+    elif tipo_ftir == "referencias":
+        baseline = [hoja for hoja in hojas if hoja.startswith("base_")]
+        zeroline = [hoja for hoja in hojas if hoja.startswith("zero_")]
+        lista_muestras = ""
 
-    # Validar que se hayan encontrado resultados únicos para baseline y zeroline
-    if len(baseline) != 1:
-        messagebox.showerror("Error", "Debe haber exactamente una hoja que comience con 'base_'.")
-        return None
-    if len(zeroline) != 1:
-        messagebox.showerror("Error", "Debe haber exactamente una hoja que comience con 'zero_'.")
-        return None
-    if not lista_muestras:
-        messagebox.showerror("Error", f"No se encontraron hojas que comiencen con '{muestra}'.")
-        return None
 
     # Construir el resultado
     resultado = {
