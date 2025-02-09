@@ -247,7 +247,14 @@ def espectro_medidas_zero_base_auto(muestra, carpeta):
     
     return archivos_zero_base, archivos_muestra
 
-def ftir_medidas_auto(muestra, archivo_tfir, ventana=False, tipo_ftir="ambos"): #falta ventana, y construir el diccionario completo
+def buscar_hojas(hojas, patrones):
+    return {patron: [hoja for hoja in hojas if hoja.startswith(patron)] for patron in patrones}
+
+def seleccionar_unico_valor(diccionario, claves):
+    for clave in claves:
+        diccionario[clave] = diccionario[clave][0] if diccionario[clave] else None
+
+def ftir_medidas_auto(archivos_ir, muestra, archivo_tfir, ventana=False, tipo_ftir="ambos"):
     # Leer las hojas del archivo Excel
     try:
         hojas = pd.ExcelFile(archivo_tfir).sheet_names
@@ -255,30 +262,68 @@ def ftir_medidas_auto(muestra, archivo_tfir, ventana=False, tipo_ftir="ambos"): 
         messagebox.showerror("Error", f"No se pudo leer el archivo Excel.\n{e}")
         return None
 
-    # Buscar hojas según patrones
+    patrones_comunes = ["zero_"]
+    patrones_ventana = ["refnegro_", "ventana_", "ventanaoro_", "ventananegro_"]
+
     if tipo_ftir == "ambos":
-        baseline = [hoja for hoja in hojas if hoja.startswith("base_")]
-        zeroline = [hoja for hoja in hojas if hoja.startswith("zero_")]
-        lista_muestras = [hoja for hoja in hojas if hoja.startswith(muestra)]
+        patrones = ["reforo_", muestra] + patrones_comunes
+        if ventana:
+            patrones += patrones_ventana
     elif tipo_ftir == "muestras":
-        baseline = ""
-        zeroline = ""
-        lista_muestras = [hoja for hoja in hojas if hoja.startswith(muestra)]
+        patrones = [muestra]
     elif tipo_ftir == "referencias":
-        baseline = [hoja for hoja in hojas if hoja.startswith("base_")]
-        zeroline = [hoja for hoja in hojas if hoja.startswith("zero_")]
-        lista_muestras = ""
+        patrones = ["base_"] + patrones_comunes
+        if ventana:
+            patrones += patrones_ventana
 
+    hojas_encontradas = buscar_hojas(hojas, patrones)
+    seleccionar_unico_valor(hojas_encontradas, ["reforo_", "zero_", "base_", "refnegro_", "ventana_", "ventanaoro_", "ventananegro_"])
 
-    # Construir el resultado
-    resultado = {
-        "archivo": archivo_tfir,
-        "baseline": baseline[0],  # Seleccionar el único valor
-        "zeroline": zeroline[0],  # Seleccionar el único valor
-        "muestras": lista_muestras  # Lista de muestras encontradas
-    }
+    archivos_ir.update(hojas_encontradas)
 
-    return resultado
+    return archivos_ir
+
+def elegir_columnas_referencia(nombre_pestana, mensaje):
+    try:
+        data_ref = pd.read_excel("references.xlsx", sheet_name=nombre_pestana)
+    except FileNotFoundError:
+        print(f"Error: No se encontró el archivo references.xlsx")
+        return None
+    except ValueError:
+        print(f"Error: No se encontró la pestaña '{nombre_pestana}' en references.xlsx")
+        return None
+    except Exception as e:
+        print(f"Error al leer el archivo: {e}")
+        return None
+
+    columnas = data_ref.columns.tolist()
+
+    if not columnas:
+        print(f"Error: La pestaña '{nombre_pestana}' no tiene columnas.")
+        return None
+
+    def seleccionar_columna():
+        columna_seleccionada = combo_columna.get()
+        ventana.destroy()  # Cierra la ventana después de la selección
+        return columna_seleccionada
+
+    ventana = Tk.Tk()
+    ventana.title(mensaje)
+
+    label_columna = Tk.Label(ventana, text="Seleccione la columna:")
+    label_columna.pack(pady=5)
+
+    combo_columna = Tk.Combobox(ventana, values=columnas, state="readonly") # Evita que el usuario escriba
+    combo_columna.current(0)  # Selecciona la primera columna por defecto
+    combo_columna.pack(pady=5)
+
+    boton_seleccionar = Tk.Button(ventana, text="Seleccionar", command=seleccionar_columna)
+    boton_seleccionar.pack(pady=10)
+
+    ventana.mainloop() # Importante: Inicia el bucle principal de la interfaz gráfica
+
+    columna_elegida = combo_columna.get() # Obtiene el valor después de que el usuario interactúa
+    return columna_elegida
 
 #funciones no usadas, pendientes de revisar
 def preguntar_dato_simple(titulo, pregunta):
@@ -352,7 +397,10 @@ def archivo_tfir_base_zero_samples():
         baseline = baseline_var.get()
         zeroline = zeroline_var.get()
         muestras_indices = listbox_muestras.curselection()
-        muestras = [hojas[i] for i in muestras_indices]
+        if muestras_indices:
+            muestras = [hojas[i] for i in muestras_indices]
+        else:
+            muestras = []
 
         # Validar las selecciones
         if not baseline:

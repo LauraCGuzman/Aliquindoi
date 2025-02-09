@@ -31,19 +31,27 @@ while respuesta == True:
         print(f"Analizando muestra {nombre}")
         #elegir pestañas de las muestras y referencias
         if "FTIR" in datos_basicos["aparatos"]:
+            archivos_ir = {} #declarar diccionario para guardar los archivos de ftir
             if path_ftir_muestras and path_ftir_referencias:
                 #leer ftir si hay: path de reforo, zero, medidas (+refnegro, ventana, ventanaoro, ventananegro)
-                archivos_muestra_ir = lectura_datos.archivos_ftir_muestras(path_ftir_muestras, ventana_ftir, "muestras") #cambiar esta función
-                archivos_zero_base_ir = lectura_datos.archivos_ftir_referencias(path_ftir_referencias, ventana_ftir, "referencias")
-                #programa para unir los dos diccionarios y que sea igual que archivos_ftir 
+                archivos_ir = lectura_datos.ftir_medidas_auto(archivos_ir, path_ftir_muestras, ventana_ftir, "muestras") #cambiar esta función
+                archivos_ir = lectura_datos.ftir_medidas_auto(archivos_ir, path_ftir_referencias, ventana_ftir, "referencias")
             else:
-                archivos_ir = lectura_datos.archivos_ftir_muestras(path_ftir_muestras, ventana_ftir, "ambos")
+                archivos_ir = lectura_datos.ftir_medidas_auto(archivos_ir, path_ftir_muestras, ventana_ftir, "ambos")
             #referencias ftir <- Falta
+            r_oro_ir = lectura_datos.elegir_columnas_referencia("absorbedores_refl", "Selecciona referencia oro")
+            if ventana_ftir == True:
+                r_fsd_ir = lectura_datos.elegir_columnas_referencia("absorbedores_abs", "Selecciona referencia negro")
+                r_trans_ir = lectura_datos.elegir_columnas_referencia("T_ventana", "Selecciona transmitancia de la ventana")
+
         
         if "Espectrofotómetro" in datos_basicos["aparatos"]:
             #leer carpeta de espectofotómetro si hay: path zero, base, muestras, (ventana y ventana base)
             archivos_zero_base_uv, archivos_muestra_uv = lectura_datos.espectro_medidas_zero_base_auto(nombre, path_espectofotometro)
             #referencias uv <- Falta
+            r_fsd_ir = lectura_datos.elegir_columnas_referencia("absorbedores_abs", "Selecciona referencia base")
+            #falta añadir a las referencias la transmitancia de la ventana en UV
+
         
         #meter datos en la muestra
         #instancias{nombre} = Muestra(nombre, archivos_muestra_ir, archivos_zero_base_uv, archivos_muestra_uv, referncias_uv, referencias_ir, datos_basicos)
