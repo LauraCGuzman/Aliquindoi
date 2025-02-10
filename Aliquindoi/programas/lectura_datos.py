@@ -9,7 +9,7 @@ from tkinter import messagebox
 
 def pregunta_tipos_test():
     # Crear un diccionario para almacenar las variables seleccionadas
-    resultados = {"medida": None, "aparatos": {}, "test": None, "hours": None}
+    resultados = {"medida": None, "aparatos": {}, "test": None, "hours": None, "temperatura": None}
 
     def update_ventana_state(aparato):
         """ Habilita o deshabilita las opciones 'con ventana' y 'sin ventana' según el estado del aparato """
@@ -25,6 +25,7 @@ def pregunta_tipos_test():
         selected_medida = variable_medida.get()
         selected_test = variable_test.get()
         hours = entry_hours.get()
+        temperatura = entry_t.get()
 
         if not selected_medida or not selected_test or not hours.isdigit():
             messagebox.showwarning("Advertencia", "Por favor, completa todas las opciones correctamente.")
@@ -33,6 +34,7 @@ def pregunta_tipos_test():
         resultados["medida"] = selected_medida
         resultados["test"] = selected_test
         resultados["hours"] = int(hours)
+        resultados["temperatura"] = float(temperatura)
 
         # Obtener selección de aparatos y si tienen ventana o no
         for aparato in ["FTIR", "Espectrofotómetro"]:
@@ -46,7 +48,8 @@ def pregunta_tipos_test():
         messagebox.showinfo("Selección", f"Has seleccionado:\nMedida: {selected_medida}\n"
                                          f"Aparatos: {resultados['aparatos']}\n"
                                          f"Tipo de test: {selected_test}\n"
-                                         f"Horas: {hours}")
+                                         f"Horas: {hours}\n"
+                                        f"Temperatura: {temperatura}")
         root.destroy()
 
     # Crear ventana principal
@@ -111,6 +114,13 @@ def pregunta_tipos_test():
 
     entry_hours = Tk.Entry(root)
     entry_hours.pack(pady=5)
+
+    # Campo de entrada para la temperatura
+    label_t = Tk.Label(root, text="Temperatura:")
+    label_t.pack(pady=5)
+
+    entry_t = Tk.Entry(root)
+    entry_t.pack(pady=5)
 
     # Botón para confirmar la selección
     button_submit = Tk.Button(root, text="Guardar", command=submit)
@@ -324,6 +334,7 @@ def elegir_columnas_referencia(nombre_pestana, mensaje):
 
     columna_elegida = combo_columna.get() # Obtiene el valor después de que el usuario interactúa
     return columna_elegida
+
 
 #funciones no usadas, pendientes de revisar
 def preguntar_dato_simple(titulo, pregunta):

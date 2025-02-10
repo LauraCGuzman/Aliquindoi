@@ -1,6 +1,5 @@
 from programas import lectura_datos
 from muestra import Muestra
-import numpy as np
 
 respuesta = True
 
@@ -21,6 +20,11 @@ while respuesta == True:
         else:
             ventana_fitr = False
 
+        if datos_basicos["aparatos"]["Espectrofotómetro"] == "Con ventana":
+            ventana_esp = True
+        else:
+            ventana_esp = False
+
     if "Espectrofotómetro" in datos_basicos["aparatos"]:
         path_espectofotometro = lectura_datos.carpeta_espectofotometro()
 
@@ -39,22 +43,28 @@ while respuesta == True:
             else:
                 archivos_ir = lectura_datos.ftir_medidas_auto(archivos_ir, path_ftir_muestras, ventana_ftir, "ambos")
             #referencias ftir <- Falta
+            referencias_ir ={"r_oro":"", "r_negro":"", "r_trans":""}
             r_oro_ir = lectura_datos.elegir_columnas_referencia("absorbedores_refl", "Selecciona referencia oro")
+            referencias_ir["r_oro"] = r_oro_ir
             if ventana_ftir == True:
-                r_fsd_ir = lectura_datos.elegir_columnas_referencia("absorbedores_abs", "Selecciona referencia negro")
-                r_trans_ir = lectura_datos.elegir_columnas_referencia("T_ventana", "Selecciona transmitancia de la ventana")
-
+                r_negro_ir = lectura_datos.elegir_columnas_referencia("absorbedores_abs", "Selecciona referencia negro")
+                r_trans_ir = lectura_datos.elegir_columnas_referencia("T_ventana_ir", "Selecciona transmitancia de la ventana")
+                referencias_ir["r_negro"] = r_negro_ir
+                referencias_ir["r_trans"] = r_trans_ir
         
         if "Espectrofotómetro" in datos_basicos["aparatos"]:
             #leer carpeta de espectofotómetro si hay: path zero, base, muestras, (ventana y ventana base)
             archivos_zero_base_uv, archivos_muestra_uv = lectura_datos.espectro_medidas_zero_base_auto(nombre, path_espectofotometro)
             #referencias uv <- Falta
-            r_fsd_ir = lectura_datos.elegir_columnas_referencia("absorbedores_abs", "Selecciona referencia base")
-            #falta añadir a las referencias la transmitancia de la ventana en UV
+            referencias_uv = {"r_uv":"", "r_trans":""}
+            r_uv = lectura_datos.elegir_columnas_referencia("absorbedores_abs", "Selecciona referencia base UV")
+            referencias_uv["r_uv"] = r_uv
+            if ventana_esp == True:
+                r_trans_uv = lectura_datos.elegir_columnas_referencia("T_ventana_uv", "Selecciona transmitancia de la ventana")
+                referencias_uv["r_trans"] = r_trans_uv
 
-        
         #meter datos en la muestra
-        #instancias{nombre} = Muestra(nombre, archivos_muestra_ir, archivos_zero_base_uv, archivos_muestra_uv, referncias_uv, referencias_ir, datos_basicos)
+        instancias[nombre] = Muestra(nombre, archivos_ir, archivos_zero_base_uv, archivos_muestra_uv, referencias_uv, referencias_ir, datos_basicos)
         
         #Hacer el proceso de lectura de datos en la muestra
         if datos_basicos["medida"] == "Reflectancia":

@@ -2,10 +2,10 @@ import pandas as pd
 import numpy as np
 import re
 class Muestra:
-    def __init__(self, nombre_muestra, archivo_tfir, file_path_zero_base_uv, file_paths_muestras_uv, referencias_ir,
+    def __init__(self, nombre_muestra, archivos_ir, file_path_zero_base_uv, file_paths_muestras_uv, referencias_ir,
                  referencias_uv, datos_basicos):
         self.nombre = nombre_muestra
-        self.archivo_tfir = archivo_tfir
+        self.archivo_tfir = archivos_ir
         self.lista_espect_muestras = file_paths_muestras_uv
         self.path_zero = file_path_zero_base_uv["ZeroLine"]
         self.path_base = file_path_zero_base_uv["BaseLine"]
@@ -15,6 +15,7 @@ class Muestra:
         self.modo = datos_basicos["mode"]
         self.test = datos_basicos["test"]
         self.hours = datos_basicos["hours"]
+        self.temperatura = datos_basicos["temperatura"]
 
     def leer_datos_referencia(self, column, type):
         if type == "uv":
@@ -67,7 +68,7 @@ class Muestra:
             data_ir = np.nan
         return data_ir
 
-    def leer_datos_asc(self, path_asc, j, col_name):
+    def leer_datos_asc_columnas(self, path_asc, j, col_name):
         with open(path_asc, 'r') as file:
             lines = file.readlines()
 
@@ -93,15 +94,15 @@ class Muestra:
         data_uv =pd.DataFrame()
         lista_medidas = self.lista_espect_muestras
         for medida in lista_medidas:
-            df = self.leer_datos_asc(medida, j, "I")
+            df = self.leer_datos_asc_columnas(medida, j, "I")
             if j == 1:
                 data_uv = df
             else:
                 data_uv = pd.merge(data_uv, df, on = "nm", how = "inner")
             j = j+1
 
-        data_uv_base = self.leer_datos_asc(self.path_base, "b","I")
-        data_uv_zero = self.leer_datos_asc(self.path_zero, "z","I")
+        data_uv_base = self.leer_datos_asc_columnas(self.path_base, "b", "I")
+        data_uv_zero = self.leer_datos_asc_columnas(self.path_zero, "z", "I")
 
         data_uv = pd.merge(data_uv, data_uv_base, on="nm", how="inner")
         data_uv = pd.merge(data_uv, data_uv_zero, on="nm", how="inner")
