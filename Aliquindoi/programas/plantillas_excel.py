@@ -52,7 +52,7 @@ def copiar_datos_excel(Muestra):
     Abre la plantilla de Excel y copia los datos de los archivos en las celdas correspondientes
     en la hoja "refl5".
     """
-    #excel_path = os.path.abspath("programas/plantillas_macros.xls")
+
     excel_path = elegir_plantilla(Muestra)
 
     output_folder = os.path.dirname(os.path.abspath(Muestra.path_zero))
