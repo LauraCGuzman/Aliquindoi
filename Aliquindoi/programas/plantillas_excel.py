@@ -26,19 +26,42 @@ def leer_asc_para_exportar_excel(path_asc):
     
     return data
 
+def elegir_plantilla(Muestra):
+    path = Muestra.path_zero
+    with open(path, 'r') as file:
+        lines = file.readlines()
+
+    linea = lines[-1]
+    split_line = linea.split()
+    medida = split_line[0].replace(",", ".")
+    medida = float(medida)
+    medida = int(medida)
+
+    if medida == 320:
+        excel_path = "programas/202501_Spectra_List_320nm.xls"
+    elif medida == 300:
+        excel_path = "programas/202501_Spectra_List_300nm.xls"
+    else:
+        excel_path = "programas/202501_Spectra_List_280nm.xls"
+    print("Plantilla elegida: ", excel_path)
+
+    return excel_path
 
 def copiar_datos_excel(Muestra):
     """
     Abre la plantilla de Excel y copia los datos de los archivos en las celdas correspondientes
     en la hoja "refl5".
     """
-    excel_path = os.path.abspath("programas/plantillas_macros.xls")
+    #excel_path = os.path.abspath("programas/plantillas_macros.xls")
+    excel_path = elegir_plantilla(Muestra)
 
     output_folder = os.path.dirname(os.path.abspath(Muestra.path_zero))
     output_folder = os.path.dirname(output_folder)  # Subir un nivel
     excel_path_output = os.path.join(output_folder, f"{Muestra.nombre}.xls")
 
     print(f"📂 Intentando abrir: {excel_path}")
+
+    n_muestras = len(Muestra.lista_espect_muestras)
 
     try:
         wb = xw.Book(excel_path)
@@ -75,6 +98,13 @@ def copiar_datos_excel(Muestra):
         # Copiar datos de Zero Line y Base Line
         insertar_datos_en_columna(Muestra.path_zero, zero_line_cell)
         insertar_datos_en_columna(Muestra.path_base, baseline_cell)
+
+        #Eliminar contenido de celdas en función de número de medidas por muestra
+        if n_muestras == 2:
+            sheet["C61"].value = ""
+        elif n_muestras == 1:
+            sheet["C61"].value = ""
+            sheet["C60"].value = ""
 
         wb.save(excel_path_output)
         wb.close()
