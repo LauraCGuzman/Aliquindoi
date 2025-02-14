@@ -11,8 +11,7 @@ class Muestra:
         self.path_base = file_path_zero_base_uv["BaseLine"]
         self.col_ir_ref = referencias_ir
         self.col_uv_ref = referencias_uv
-        self.tipo = datos_basicos["item"]
-        self.modo = datos_basicos["mode"]
+        self.tipo = datos_basicos["aparatos"]
         self.test = datos_basicos["test"]
         self.hours = datos_basicos["hours"]
         self.temperatura = datos_basicos["temperatura"]
@@ -68,6 +67,10 @@ class Muestra:
             data_ir = np.nan
         return data_ir
 
+    def leer_asc(selfself, path_asc):
+        with open(path_asc, 'r') as file:
+            lines = file.readlines()
+        return lines
     def leer_datos_asc_columnas(self, path_asc, j, col_name):
         with open(path_asc, 'r') as file:
             lines = file.readlines()

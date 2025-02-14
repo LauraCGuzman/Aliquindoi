@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 import tkinter as Tk
 from tkinter import messagebox
-
+from tkinter import ttk
 
 def pregunta_tipos_test():
     # Crear un diccionario para almacenar las variables seleccionadas
@@ -224,6 +224,15 @@ def carpeta_espectofotometro():
     # Devolver las rutas seleccionadas
     return carpeta
 
+def encontrar_archivos_asc_por_nombre(nombre, carpeta):
+    archivos_encontrados = []
+    for raiz, directorios, archivos in os.walk(carpeta):
+        for archivo in archivos:
+            if archivo.startswith(nombre) and archivo.endswith(".asc"):
+                ruta_completa = os.path.join(raiz, archivo)
+                archivos_encontrados.append(ruta_completa)
+    return archivos_encontrados
+
 def espectro_medidas_zero_base_auto(muestra, carpeta):
 
     archivos_base = encontrar_archivos_asc_por_nombre("base_", carpeta)
@@ -312,28 +321,30 @@ def elegir_columnas_referencia(nombre_pestana, mensaje):
         print(f"Error: La pestaña '{nombre_pestana}' no tiene columnas.")
         return None
 
-    def seleccionar_columna():
-        columna_seleccionada = combo_columna.get()
-        ventana.destroy()  # Cierra la ventana después de la selección
-        return columna_seleccionada
+    columna_elegida = Tk.StringVar()  # Variable para almacenar la selección
 
+    def seleccionar_columna():
+        ventana.quit()  # Finaliza el bucle de eventos sin cerrar la ventana
+
+    # Crear la ventana
     ventana = Tk.Tk()
     ventana.title(mensaje)
 
     label_columna = Tk.Label(ventana, text="Seleccione la columna:")
     label_columna.pack(pady=5)
 
-    combo_columna = Tk.Combobox(ventana, values=columnas, state="readonly") # Evita que el usuario escriba
-    combo_columna.current(0)  # Selecciona la primera columna por defecto
+    combo_columna = ttk.Combobox(ventana, values=columnas, state="readonly", textvariable=columna_elegida)
+    combo_columna.current(0)
     combo_columna.pack(pady=5)
 
     boton_seleccionar = Tk.Button(ventana, text="Seleccionar", command=seleccionar_columna)
     boton_seleccionar.pack(pady=10)
 
-    ventana.mainloop() # Importante: Inicia el bucle principal de la interfaz gráfica
+    ventana.mainloop()  # Inicia la interfaz gráfica
 
-    columna_elegida = combo_columna.get() # Obtiene el valor después de que el usuario interactúa
-    return columna_elegida
+    ventana.destroy()  # Cierra la ventana completamente
+
+    return columna_elegida.get()  # Devuelve la columna seleccionada
 
 
 #funciones no usadas, pendientes de revisar
@@ -569,14 +580,7 @@ def seleccionar_spectro_referencia_UV():
 
     # Devolver el resultado
     return resultado
-def encontrar_archivos_asc_por_nombre(nombre, carpeta):
-    archivos_encontrados = []
-    for raiz, directorios, archivos in os.walk(carpeta):
-        for archivo in archivos:
-            if archivo.startswith(nombre) and archivo.endswith(".asc"):
-                ruta_completa = os.path.join(raiz, archivo)
-                archivos_encontrados.append(ruta_completa)
-    return archivos_encontrados
+
 
 
 #dependiendo de si es UV o IR, se lee una wavelength u otra

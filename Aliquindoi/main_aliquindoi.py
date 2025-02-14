@@ -1,4 +1,4 @@
-from programas import lectura_datos
+from programas import lectura_datos, plantillas_excel
 from muestra import Muestra
 
 respuesta = True
@@ -10,6 +10,14 @@ while respuesta == True:
     print(datos_basicos)
     # introducir nombres de las muestras
     nombres_muestras = lectura_datos.nombres_muestras_auto()
+
+    # declaracion de variables antes de iniciar el programa.
+    archivos_ir =""
+    archivos_zero_base_uv =""
+    archivos_muestra_uv = ""
+    referencias_uv = ""
+    referencias_ir = ""
+
     # leer datos espectofotómetro/ftir si los hay
     if "FTIR" in datos_basicos["aparatos"]:
         path_ftir_muestras = lectura_datos.archivo_tfir("Selecciona archivo FTIR de las muestras \n o muestras y referencias")
@@ -27,9 +35,14 @@ while respuesta == True:
 
     if "Espectrofotómetro" in datos_basicos["aparatos"]:
         path_espectofotometro = lectura_datos.carpeta_espectofotometro()
+        if datos_basicos["aparatos"]["Espectrofotómetro"] == "Con ventana":
+            ventana_esp = True
+        else:
+            ventana_esp = False
 
     #preguntar por referencias uv/ir:
     instancias = {} #diccionario para guardar las instancias de las muestras
+
     for nombre in nombres_muestras:
         
         print(f"Analizando muestra {nombre}")
@@ -55,20 +68,26 @@ while respuesta == True:
         if "Espectrofotómetro" in datos_basicos["aparatos"]:
             #leer carpeta de espectofotómetro si hay: path zero, base, muestras, (ventana y ventana base)
             archivos_zero_base_uv, archivos_muestra_uv = lectura_datos.espectro_medidas_zero_base_auto(nombre, path_espectofotometro)
+            print("archivos zero y base: ", archivos_zero_base_uv)
+            print("archivos muestra: ", archivos_muestra_uv)
             #referencias uv <- Falta
             referencias_uv = {"r_uv":"", "r_trans":""}
             r_uv = lectura_datos.elegir_columnas_referencia("absorbedores_abs", "Selecciona referencia base UV")
             referencias_uv["r_uv"] = r_uv
             if ventana_esp == True:
+                print("Ventana en UV seleccionada")
                 r_trans_uv = lectura_datos.elegir_columnas_referencia("T_ventana_uv", "Selecciona transmitancia de la ventana")
                 referencias_uv["r_trans"] = r_trans_uv
+            print("Referencias uv seleccionadas")
 
         #meter datos en la muestra
+        print("Creando muestra")
         instancias[nombre] = Muestra(nombre, archivos_ir, archivos_zero_base_uv, archivos_muestra_uv, referencias_uv, referencias_ir, datos_basicos)
         
         #Hacer el proceso de lectura de datos en la muestra
         if datos_basicos["medida"] == "Reflectancia":
             print("Reflectancia")
+            plantillas_excel.copiar_datos_excel(instancias[nombre])
         elif datos_basicos["medida"] == "Absortancia":
             print("Absortancia")
         elif datos_basicos["medida"] == "Transmitancia":
