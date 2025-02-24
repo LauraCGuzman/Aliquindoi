@@ -106,6 +106,15 @@ def copiar_datos_excel(Muestra):
             sheet["C61"].value = ""
             sheet["C60"].value = ""
 
+        #introducir datos
+        sheet["C3"] = Muestra.nombre + " - " + Muestra.fabricante
+        sheet["C5"] = Muestra.nombre
+        sheet["C6"] = Muestra.nombre
+        sheet["C7"] = Muestra.fabricante
+        sheet["C15"] = Muestra.test
+        sheet["C21"] = Muestra.hours
+        sheet["C22"] = Muestra.meses
+
         wb.save(excel_path_output)
         wb.close()
         print(f"📂 Archivo guardado en: {excel_path_output}")

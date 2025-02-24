@@ -13,7 +13,10 @@ class Muestra:
         self.col_uv_ref = referencias_uv
         self.tipo = datos_basicos["aparatos"]
         self.test = datos_basicos["test"]
+        self.fabricante = datos_basicos["fabricante"]
+        self.proyecto = datos_basicos["proyecto"]
         self.hours = datos_basicos["hours"]
+        self.meses = datos_basicos["months"]
         self.temperatura = datos_basicos["temperatura"]
 
     def leer_datos_referencia(self, column, type):

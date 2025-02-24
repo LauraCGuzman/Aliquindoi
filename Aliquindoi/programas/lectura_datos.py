@@ -6,10 +6,12 @@ import os
 import tkinter as Tk
 from tkinter import messagebox
 from tkinter import ttk
+from tkcalendar import Calendar
 
 def pregunta_tipos_test():
     # Crear un diccionario para almacenar las variables seleccionadas
-    resultados = {"medida": None, "aparatos": {}, "test": None, "hours": None, "temperatura": None}
+    resultados = {"medida": None, "aparatos": {}, "test": None, "fabricante": None, "proyecto":None,
+                  "hours": None, "months": None, "temperatura": None, "fecha_medida": {}}
 
     def update_ventana_state(aparato):
         """ Habilita o deshabilita las opciones 'con ventana' y 'sin ventana' según el estado del aparato """
@@ -24,7 +26,10 @@ def pregunta_tipos_test():
     def submit():
         selected_medida = variable_medida.get()
         selected_test = variable_test.get()
+        selected_fabricante = variable_fabricante.get()
+        selected_proyecto = variable_proyecto.get()
         hours = entry_hours.get()
+        months = entry_months.get()
         temperatura = entry_t.get()
 
         if not selected_medida or not selected_test or not hours.isdigit():
@@ -33,8 +38,21 @@ def pregunta_tipos_test():
 
         resultados["medida"] = selected_medida
         resultados["test"] = selected_test
-        resultados["hours"] = int(hours)
+        resultados["fabricante"] = selected_fabricante
+        resultados["proyecto"] = selected_proyecto
+        resultados["hours"] = hours
+        resultados["months"] = months
         resultados["temperatura"] = float(temperatura)
+
+        # Obtener la fecha seleccionada
+        fecha_seleccionada = cal.get_date()
+        fecha_dt = datetime.strptime(fecha_seleccionada, "%d/%m/%Y")
+
+        # Formatear la fecha en los formatos requeridos
+        fecha_formato1 = fecha_dt.strftime("%d/%m/%Y")
+        fecha_formato2 = fecha_dt.strftime("%Y%m%d")
+
+        resultados["fecha_medida"] = {"dd/mm/yyyy": fecha_formato1, "yyyyMMdd": fecha_formato2}
 
         # Obtener selección de aparatos y si tienen ventana o no
         for aparato in ["FTIR", "Espectrofotómetro"]:
@@ -48,14 +66,25 @@ def pregunta_tipos_test():
         messagebox.showinfo("Selección", f"Has seleccionado:\nMedida: {selected_medida}\n"
                                          f"Aparatos: {resultados['aparatos']}\n"
                                          f"Tipo de test: {selected_test}\n"
+                                         f"Fabricante: {selected_fabricante}\n"
+                                         f"Proyecto: {selected_proyecto}\n"
                                          f"Horas: {hours}\n"
-                                        f"Temperatura: {temperatura}")
+                                         f"Meses: {months}\n"
+                                         f"Temperatura: {temperatura}\n"
+                                         f"Fecha de Medida: {fecha_formato1} ")
         root.destroy()
 
     # Crear ventana principal
     root = Tk.Tk()
     root.title("Selector de Opciones")
     root.geometry("400x700")
+
+    # Añadir el selector de fecha
+    label_fecha = Tk.Label(root, text="Fecha de Medida:")
+    label_fecha.pack(pady=5)
+
+    cal = Calendar(root, selectmode="day", date_pattern="dd/mm/yyyy")
+    cal.pack(pady=5)
 
     # Opciones de medida
     label_medida = Tk.Label(root, text="Selecciona la medida:")
@@ -95,17 +124,30 @@ def pregunta_tipos_test():
     label_test = Tk.Label(root, text="Selecciona el tipo de test:")
     label_test.pack(pady=5)
 
-    options_test = ["NSS", "CASS", "UVH", "DH85/85", "DH65/85", "Taber", "Cross Cut",
-                    "UV", "TC AENOR", "TC1", "TC2", "Condensation", "BrushCleaning",
-                    "Humidity Freeze", "Muffla Oven", "Solar Furnace", "Almería", "PSA",
-                    "Missour", "Erfoud", "Zagora", "Israel SEDC", "Chajnantor",
-                    "Antofagasta", "Odeillo", "Oujda", "Ben Guerir", "Abu Dhabi",
-                    "Canarias", "Chipre", "Sand storm", "TC/NSS", "TC/DH65/85",
-                    "LNEG Portugal", "Initial characterization", "Helio Fresnel",
-                    "Dust Barrier", "UV+CASS", "Sines", "Helio back"]
+    options_test = elegir_test_referencias("testsite")
 
     variable_test = Tk.StringVar(value="")
     menu_test = Tk.OptionMenu(root, variable_test, *options_test)
+    menu_test.pack(pady=5)
+
+    # Selección de tipo de fabricante
+    label_fabricante = Tk.Label(root, text="Selecciona el fabricante:")
+    label_fabricante.pack(pady=5)
+
+    option_manufacturer = elegir_test_referencias("fabricantes")
+
+    variable_fabricante = Tk.StringVar(value="")
+    menu_test = Tk.OptionMenu(root, variable_fabricante, *option_manufacturer)
+    menu_test.pack(pady=5)
+
+    # Selección de tipo de proyecto
+    label_proyect = Tk.Label(root, text="Selecciona el proyecto:")
+    label_proyect.pack(pady=5)
+
+    option_proyect = elegir_test_referencias("proyectos")
+
+    variable_proyecto = Tk.StringVar(value="")
+    menu_test = Tk.OptionMenu(root, variable_proyecto, *option_proyect)
     menu_test.pack(pady=5)
 
     # Campo de entrada para las horas
@@ -114,6 +156,13 @@ def pregunta_tipos_test():
 
     entry_hours = Tk.Entry(root)
     entry_hours.pack(pady=5)
+
+    # Campo de entrada para meses
+    label_months = Tk.Label(root, text="Meses:")
+    label_months.pack(pady=5)
+
+    entry_months = Tk.Entry(root)
+    entry_months.pack(pady=5)
 
     # Campo de entrada para la temperatura
     label_t = Tk.Label(root, text="Temperatura:")
@@ -345,6 +394,24 @@ def elegir_columnas_referencia(nombre_pestana, mensaje):
     ventana.destroy()  # Cierra la ventana completamente
 
     return columna_elegida.get()  # Devuelve la columna seleccionada
+
+def elegir_test_referencias(nombre_pestana):
+    try:
+        data_ref = pd.read_excel("references.xlsx", sheet_name=nombre_pestana, header=None) # Lee sin encabezados
+        if data_ref.empty:
+            print(f"Advertencia: La pestaña '{nombre_pestana}' está vacía.")
+            return []  # Devuelve una lista vacía si la pestaña está vacía
+        else:
+            return data_ref.iloc[:, 0].tolist()  # Devuelve la primera columna como lista
+    except FileNotFoundError:
+        print(f"Error: No se encontró el archivo references.xlsx")
+        return None
+    except ValueError:
+        print(f"Error: No se encontró la pestaña '{nombre_pestana}' en references.xlsx")
+        return None
+    except Exception as e:
+        print(f"Error al leer el archivo: {e}")
+        return None
 
 
 #funciones no usadas, pendientes de revisar
