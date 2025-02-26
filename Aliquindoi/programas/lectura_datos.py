@@ -8,6 +8,17 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkcalendar import Calendar
 
+def elegir_test_referencias(tipo):
+    """Función simulada que devuelve opciones para los menús desplegables."""
+    if tipo == "testsite":
+        return ["Test A", "Test B", "Test C"]
+    elif tipo == "fabricantes":
+        return ["Fabricante 1", "Fabricante 2", "Fabricante 3"]
+    elif tipo == "proyectos":
+        return ["Proyecto X", "Proyecto Y", "Proyecto Z"]
+    else:
+        return []
+
 def pregunta_tipos_test():
     # Crear un diccionario para almacenar las variables seleccionadas
     resultados = {"medida": None, "aparatos": {}, "test": None, "fabricante": None, "proyecto":None,
@@ -22,6 +33,23 @@ def pregunta_tipos_test():
             radio_ventana_si[aparato].config(state=Tk.DISABLED)
             radio_ventana_no[aparato].config(state=Tk.DISABLED)
             variable_ventana[aparato].set("")  # Reiniciar selección de ventana si se desmarca el aparato
+
+    def abrir_calendario():
+        """Abre el calendario en una ventana emergente."""
+        top = Tk.Toplevel(root)
+        cal = Calendar(top, selectmode="day", date_pattern="dd/mm/yyyy")
+        cal.pack(pady=10)
+
+        def seleccionar_fecha():
+            fecha_seleccionada = cal.get_date()
+            fecha_dt = datetime.strptime(fecha_seleccionada, "%d/%m/%Y")
+            fecha_formato1 = fecha_dt.strftime("%d/%m/%Y")
+            fecha_formato2 = fecha_dt.strftime("%Y%m%d")
+            resultados["fecha_medida"] = {"dd/mm/yyyy": fecha_formato1, "yyyyMMdd": fecha_formato2}
+            label_mostrar_fecha.config(text=f"Fecha seleccionada: {fecha_formato1}")
+            top.destroy()
+
+        Tk.Button(top, text="Seleccionar", command=seleccionar_fecha).pack(pady=5)
 
     def submit():
         selected_medida = variable_medida.get()
@@ -44,16 +72,6 @@ def pregunta_tipos_test():
         resultados["months"] = months
         resultados["temperatura"] = float(temperatura)
 
-        # Obtener la fecha seleccionada
-        fecha_seleccionada = cal.get_date()
-        fecha_dt = datetime.strptime(fecha_seleccionada, "%d/%m/%Y")
-
-        # Formatear la fecha en los formatos requeridos
-        fecha_formato1 = fecha_dt.strftime("%d/%m/%Y")
-        fecha_formato2 = fecha_dt.strftime("%Y%m%d")
-
-        resultados["fecha_medida"] = {"dd/mm/yyyy": fecha_formato1, "yyyyMMdd": fecha_formato2}
-
         # Obtener selección de aparatos y si tienen ventana o no
         for aparato in ["FTIR", "Espectrofotómetro"]:
             if variables_aparatos[aparato].get():
@@ -61,6 +79,11 @@ def pregunta_tipos_test():
 
         if not resultados["aparatos"]:
             messagebox.showwarning("Advertencia", "Debes seleccionar al menos un aparato.")
+            return
+
+        # Verificar si se seleccionó una fecha
+        if not resultados["fecha_medida"]:
+            messagebox.showwarning("Advertencia", "Por favor, selecciona una fecha.")
             return
 
         messagebox.showinfo("Selección", f"Has seleccionado:\nMedida: {selected_medida}\n"
@@ -71,28 +94,31 @@ def pregunta_tipos_test():
                                          f"Horas: {hours}\n"
                                          f"Meses: {months}\n"
                                          f"Temperatura: {temperatura}\n"
-                                         f"Fecha de Medida: {fecha_formato1} ")
+                                         f"Fecha de Medida: {resultados['fecha_medida']['dd/mm/yyyy']} ")
         root.destroy()
 
     # Crear ventana principal
     root = Tk.Tk()
     root.title("Selector de Opciones")
-    root.geometry("400x700")
+    root.geometry("400x800")
 
-    # Añadir el selector de fecha
-    label_fecha = Tk.Label(root, text="Fecha de Medida:")
-    label_fecha.pack(pady=5)
+    # Botón para abrir el calendario
+    Tk.Button(root, text="Seleccionar fecha", command=abrir_calendario).pack(pady=5)
 
-    cal = Calendar(root, selectmode="day", date_pattern="dd/mm/yyyy")
-    cal.pack(pady=5)
+    # Label para mostrar la fecha seleccionada
+    label_mostrar_fecha = Tk.Label(root, text="Fecha seleccionada: ")
+    label_mostrar_fecha.pack(pady=5)
 
     # Opciones de medida
     label_medida = Tk.Label(root, text="Selecciona la medida:")
     label_medida.pack(pady=5)
 
+    frame_medidas = Tk.Frame(root)
+    frame_medidas.pack()
+
     variable_medida = Tk.StringVar(value="Reflectancia")
     for medida in ["Reflectancia", "Absortancia", "Transmitancia"]:
-        Tk.Radiobutton(root, text=medida, variable=variable_medida, value=medida).pack(anchor='w')
+        Tk.Radiobutton(frame_medidas, text=medida, variable=variable_medida, value=medida).pack(side=Tk.LEFT)
 
     # Opciones de aparatos
     label_aparatos = Tk.Label(root, text="Selecciona los aparatos:")
@@ -149,6 +175,7 @@ def pregunta_tipos_test():
     variable_proyecto = Tk.StringVar(value="")
     menu_test = Tk.OptionMenu(root, variable_proyecto, *option_proyect)
     menu_test.pack(pady=5)
+
 
     # Campo de entrada para las horas
     label_hours = Tk.Label(root, text="Horas:")
