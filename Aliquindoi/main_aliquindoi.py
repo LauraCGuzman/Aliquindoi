@@ -64,6 +64,7 @@ while respuesta == True:
                 r_trans_ir = lectura_datos.elegir_columnas_referencia("T_ventana_ir", "Selecciona transmitancia de la ventana")
                 referencias_ir["r_negro"] = r_negro_ir
                 referencias_ir["r_trans"] = r_trans_ir
+            print("referencias ir seleccionadas: ", referencias_ir)
         
         if "Espectrofotómetro" in datos_basicos["aparatos"]:
             #leer carpeta de espectofotómetro si hay: path zero, base, muestras, (ventana y ventana base)
@@ -72,17 +73,22 @@ while respuesta == True:
             print("archivos muestra: ", archivos_muestra_uv)
             #referencias uv <- Falta
             referencias_uv = {"r_uv":"", "r_trans":""}
-            r_uv = lectura_datos.elegir_columnas_referencia("absorbedores_abs", "Selecciona referencia base UV")
+            if datos_basicos["medida"] == "Absortancia":
+                r_uv = lectura_datos.elegir_columnas_referencia("absorbedores_abs", "Selecciona referencia base UV")
+            elif datos_basicos["medida"] == "Reflectancia":
+                r_uv = lectura_datos.elegir_columnas_referencia("reflectores", "Selecciona referencia base UV")
+                print("r_uv: ", r_uv)
             referencias_uv["r_uv"] = r_uv
             if ventana_esp == True:
                 print("Ventana en UV seleccionada")
                 r_trans_uv = lectura_datos.elegir_columnas_referencia("T_ventana_uv", "Selecciona transmitancia de la ventana")
                 referencias_uv["r_trans"] = r_trans_uv
             print("Referencias uv seleccionadas")
+            print(referencias_uv)
 
         #meter datos en la muestra
         print("Creando muestra")
-        instancias[nombre] = Muestra(nombre, archivos_ir, archivos_zero_base_uv, archivos_muestra_uv, referencias_uv, referencias_ir, datos_basicos)
+        instancias[nombre] = Muestra(nombre, archivos_ir, archivos_zero_base_uv, archivos_muestra_uv, referencias_ir, referencias_uv, datos_basicos)
         
         #Hacer el proceso de lectura de datos en la muestra
         if datos_basicos["medida"] == "Reflectancia":

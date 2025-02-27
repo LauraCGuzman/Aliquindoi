@@ -68,9 +68,36 @@ def pregunta_tipos_test():
         resultados["test"] = selected_test
         resultados["fabricante"] = selected_fabricante
         resultados["proyecto"] = selected_proyecto
-        resultados["hours"] = hours
-        resultados["months"] = months
-        resultados["temperatura"] = float(temperatura)
+
+        # Validar y almacenar horas si se ingresan
+        if hours:
+            if hours.isdigit():
+                resultados["hours"] = int(hours)
+            else:
+                messagebox.showwarning("Advertencia", "Horas debe ser un número entero.")
+                return
+        else:
+            resultados["hours"] = None  # Almacenar None si el campo está vacío
+
+        # Validar y almacenar meses si se ingresan
+        if months:
+            if months.isdigit():
+                resultados["months"] = int(months)
+            else:
+                messagebox.showwarning("Advertencia", "Meses debe ser un número entero.")
+                return
+        else:
+            resultados["months"] = None  # Almacenar None si el campo está vacío
+
+        # Validar y almacenar temperatura si se ingresa
+        if temperatura:
+            try:
+                resultados["temperatura"] = float(temperatura)
+            except ValueError:
+                messagebox.showwarning("Advertencia", "Temperatura debe ser un número.")
+                return
+        else:
+            resultados["temperatura"] = None  # Almacenar None si el campo está vacío
 
         # Obtener selección de aparatos y si tienen ventana o no
         for aparato in ["FTIR", "Espectrofotómetro"]:
@@ -97,23 +124,39 @@ def pregunta_tipos_test():
                                          f"Fecha de Medida: {resultados['fecha_medida']['dd/mm/yyyy']} ")
         root.destroy()
 
-    # Crear ventana principal
     root = Tk.Tk()
     root.title("Selector de Opciones")
-    root.geometry("400x800")
+    root.geometry("400x400")  # Tamaño inicial más pequeño para mostrar el scrollbar
 
+    # Crear el Canvas
+    canvas = Tk.Canvas(root)
+    canvas.pack(side=Tk.LEFT, fill=Tk.BOTH, expand=True)
+
+    # Crear la Scrollbar
+    scrollbar = Tk.Scrollbar(root, orient=Tk.VERTICAL, command=canvas.yview)
+    scrollbar.pack(side=Tk.RIGHT, fill=Tk.Y)
+
+    # Configurar el Canvas para usar la Scrollbar
+    canvas.configure(yscrollcommand=scrollbar.set)
+    canvas.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+    # Crear un Frame dentro del Canvas para contener tu contenido
+    frame = Tk.Frame(canvas)
+    canvas.create_window((0, 0), window=frame, anchor=Tk.NW)
+
+    # Agregar tu contenido al Frame
     # Botón para abrir el calendario
-    Tk.Button(root, text="Seleccionar fecha", command=abrir_calendario).pack(pady=5)
+    Tk.Button(frame, text="Seleccionar fecha", command=abrir_calendario).pack(pady=5)
 
     # Label para mostrar la fecha seleccionada
-    label_mostrar_fecha = Tk.Label(root, text="Fecha seleccionada: ")
+    label_mostrar_fecha = Tk.Label(frame, text="Fecha seleccionada: ")
     label_mostrar_fecha.pack(pady=5)
 
     # Opciones de medida
-    label_medida = Tk.Label(root, text="Selecciona la medida:")
+    label_medida = Tk.Label(frame, text="Selecciona la medida:")
     label_medida.pack(pady=5)
 
-    frame_medidas = Tk.Frame(root)
+    frame_medidas = Tk.Frame(frame)
     frame_medidas.pack()
 
     variable_medida = Tk.StringVar(value="Reflectancia")
@@ -121,7 +164,7 @@ def pregunta_tipos_test():
         Tk.Radiobutton(frame_medidas, text=medida, variable=variable_medida, value=medida).pack(side=Tk.LEFT)
 
     # Opciones de aparatos
-    label_aparatos = Tk.Label(root, text="Selecciona los aparatos:")
+    label_aparatos = Tk.Label(frame, text="Selecciona los aparatos:")
     label_aparatos.pack(pady=5)
 
     variables_aparatos = {aparato: Tk.BooleanVar() for aparato in ["FTIR", "Espectrofotómetro"]}
@@ -130,10 +173,10 @@ def pregunta_tipos_test():
     radio_ventana_no = {}
 
     for aparato in ["FTIR", "Espectrofotómetro"]:
-        Tk.Checkbutton(root, text=aparato, variable=variables_aparatos[aparato],
+        Tk.Checkbutton(frame, text=aparato, variable=variables_aparatos[aparato],
                        command=lambda a=aparato: update_ventana_state(a)).pack(anchor='w')
 
-        frame_ventana = Tk.Frame(root)
+        frame_ventana = Tk.Frame(frame)
         frame_ventana.pack(anchor='w', padx=20)
 
         radio_ventana_si[aparato] = Tk.Radiobutton(frame_ventana, text="Con ventana",
@@ -147,59 +190,58 @@ def pregunta_tipos_test():
         radio_ventana_no[aparato].pack(side=Tk.LEFT)
 
     # Selección de tipo de test
-    label_test = Tk.Label(root, text="Selecciona el tipo de test:")
+    label_test = Tk.Label(frame, text="Selecciona el tipo de test:")
     label_test.pack(pady=5)
 
     options_test = elegir_test_referencias("testsite")
 
     variable_test = Tk.StringVar(value="")
-    menu_test = Tk.OptionMenu(root, variable_test, *options_test)
+    menu_test = Tk.OptionMenu(frame, variable_test, *options_test)
     menu_test.pack(pady=5)
 
     # Selección de tipo de fabricante
-    label_fabricante = Tk.Label(root, text="Selecciona el fabricante:")
+    label_fabricante = Tk.Label(frame, text="Selecciona el fabricante:")
     label_fabricante.pack(pady=5)
 
     option_manufacturer = elegir_test_referencias("fabricantes")
 
     variable_fabricante = Tk.StringVar(value="")
-    menu_test = Tk.OptionMenu(root, variable_fabricante, *option_manufacturer)
+    menu_test = Tk.OptionMenu(frame, variable_fabricante, *option_manufacturer)
     menu_test.pack(pady=5)
 
     # Selección de tipo de proyecto
-    label_proyect = Tk.Label(root, text="Selecciona el proyecto:")
+    label_proyect = Tk.Label(frame, text="Selecciona el proyecto:")
     label_proyect.pack(pady=5)
 
     option_proyect = elegir_test_referencias("proyectos")
 
     variable_proyecto = Tk.StringVar(value="")
-    menu_test = Tk.OptionMenu(root, variable_proyecto, *option_proyect)
+    menu_test = Tk.OptionMenu(frame, variable_proyecto, *option_proyect)
     menu_test.pack(pady=5)
 
-
     # Campo de entrada para las horas
-    label_hours = Tk.Label(root, text="Horas:")
+    label_hours = Tk.Label(frame, text="Horas:")
     label_hours.pack(pady=5)
 
-    entry_hours = Tk.Entry(root)
+    entry_hours = Tk.Entry(frame)
     entry_hours.pack(pady=5)
 
     # Campo de entrada para meses
-    label_months = Tk.Label(root, text="Meses:")
+    label_months = Tk.Label(frame, text="Meses:")
     label_months.pack(pady=5)
 
-    entry_months = Tk.Entry(root)
+    entry_months = Tk.Entry(frame)
     entry_months.pack(pady=5)
 
     # Campo de entrada para la temperatura
-    label_t = Tk.Label(root, text="Temperatura:")
+    label_t = Tk.Label(frame, text="Temperatura:")
     label_t.pack(pady=5)
 
-    entry_t = Tk.Entry(root)
+    entry_t = Tk.Entry(frame)
     entry_t.pack(pady=5)
 
     # Botón para confirmar la selección
-    button_submit = Tk.Button(root, text="Guardar", command=submit)
+    button_submit = Tk.Button(frame, text="Guardar", command=submit)
     button_submit.pack(pady=20)
 
     # Ejecutar la aplicación
@@ -378,6 +420,7 @@ def ftir_medidas_auto(archivos_ir, muestra, archivo_tfir, ventana=False, tipo_ft
 
     return archivos_ir
 
+
 def elegir_columnas_referencia(nombre_pestana, mensaje):
     try:
         data_ref = pd.read_excel("references.xlsx", sheet_name=nombre_pestana)
@@ -397,30 +440,30 @@ def elegir_columnas_referencia(nombre_pestana, mensaje):
         print(f"Error: La pestaña '{nombre_pestana}' no tiene columnas.")
         return None
 
-    columna_elegida = Tk.StringVar()  # Variable para almacenar la selección
-
-    def seleccionar_columna():
-        ventana.quit()  # Finaliza el bucle de eventos sin cerrar la ventana
-
-    # Crear la ventana
     ventana = Tk.Tk()
     ventana.title(mensaje)
+
+    nombre_elegido = Tk.StringVar()  # Variable para almacenar la selección
 
     label_columna = Tk.Label(ventana, text="Seleccione la columna:")
     label_columna.pack(pady=5)
 
-    combo_columna = ttk.Combobox(ventana, values=columnas, state="readonly", textvariable=columna_elegida)
-    combo_columna.current(0)
+    combo_columna = ttk.Combobox(ventana, values=columnas, state="readonly")
     combo_columna.pack(pady=5)
+    combo_columna.current(0)  # Selecciona por defecto el primer elemento
 
-    boton_seleccionar = Tk.Button(ventana, text="Seleccionar", command=seleccionar_columna)
+    def submit():
+        nombre_elegido.set(combo_columna.get())  # Asigna el valor seleccionado
+        ventana.quit()  # Cierra el loop de Tkinter
+        ventana.destroy()  # Cierra la ventana
+
+    boton_seleccionar = Tk.Button(ventana, text="Seleccionar", command=submit)
     boton_seleccionar.pack(pady=10)
 
     ventana.mainloop()  # Inicia la interfaz gráfica
 
-    ventana.destroy()  # Cierra la ventana completamente
+    return nombre_elegido.get()  # Devuelve la columna seleccionada
 
-    return columna_elegida.get()  # Devuelve la columna seleccionada
 
 def elegir_test_referencias(nombre_pestana):
     try:
