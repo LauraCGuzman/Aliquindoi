@@ -38,41 +38,41 @@ def elegir_plantilla(Muestra):
     medida = int(medida)
 
     if medida == 320:
-        excel_path = "programas/202501_Spectra_List_320nm.xls"
+        excel_path = "programas/202501_refl_320.xls"
     elif medida == 300:
-        excel_path = "programas/202501_Spectra_List_300nm.xls"
+        excel_path = "programas/202501_refl_300.xls"
     else:
-        excel_path = "programas/202501_Spectra_List_280nm.xls"
+        excel_path = "programas/202501_refl_280.xls"
     print("Plantilla elegida: ", excel_path)
 
     return excel_path
 
-def copiar_datos_excel(Muestra):
+def copiar_datos_excel(Muestra, wb_destino):
     """
-    Abre la plantilla de Excel y copia los datos de los archivos en las celdas correspondientes
-    en la hoja "refl5".
+    Abre la plantilla, modifica la hoja "refl5" y la guarda en el libro de trabajo de destino.
     """
 
-    excel_path = elegir_plantilla(Muestra)
+    plantilla_path = elegir_plantilla(Muestra)
 
-    output_folder = os.path.dirname(os.path.abspath(Muestra.path_zero))
-    output_folder = os.path.dirname(output_folder)  # Subir un nivel
-    excel_path_output = os.path.join(output_folder, f"{Muestra.nombre}.xls")
-
-    print(f"📂 Intentando abrir: {excel_path}")
+    print(f" Intentando abrir plantilla: {plantilla_path}")
+    print(f" Intentando abrir libro de destino: {Muestra.path_output}")
 
     n_muestras = len(Muestra.lista_espect_muestras)
 
     try:
-        wb = xw.Book(excel_path)
-        sheet = wb.sheets['refl5']  # Trabajar en la hoja correcta
+        wb_plantilla = xw.Book(plantilla_path)  # Plantilla
+
+        app = wb_destino.app  # Obtener la aplicación de Excel
+        app.display_alerts = False  # Desactivar alertas
+
+        sheet_plantilla = wb_plantilla.sheets['refl5']  # Hoja de la plantilla
 
         # Diccionario con las celdas de inicio
         measurement_cells = {1: "Q536", 2: "R536", 3: "S536"}
         zero_line_cell = "M536"
         baseline_cell = "N536"
 
-        def insertar_datos_en_columna(file_path, start_cell):
+        def insertar_datos_en_columna(file_path, start_cell, sheet):
             """ Lee un archivo .asc y copia los valores en una columna en Excel. """
             data = leer_asc_para_exportar_excel(file_path)
             if not data:
@@ -93,31 +93,40 @@ def copiar_datos_excel(Muestra):
             if i > 3:
                 print(f"⚠️ Más de 3 mediciones. Ignorando {file}")
                 break
-            insertar_datos_en_columna(file, measurement_cells[i])
+            insertar_datos_en_columna(file, measurement_cells[i], sheet_plantilla)
 
         # Copiar datos de Zero Line y Base Line
-        insertar_datos_en_columna(Muestra.path_zero, zero_line_cell)
-        insertar_datos_en_columna(Muestra.path_base, baseline_cell)
+        insertar_datos_en_columna(Muestra.path_zero, zero_line_cell, sheet_plantilla)
+        insertar_datos_en_columna(Muestra.path_base, baseline_cell, sheet_plantilla)
 
         #Eliminar contenido de celdas en función de número de medidas por muestra
         if n_muestras == 2:
-            sheet["C61"].value = ""
+            sheet_plantilla["C61"].value = ""
         elif n_muestras == 1:
-            sheet["C61"].value = ""
-            sheet["C60"].value = ""
+            sheet_plantilla["C61"].value = ""
+            sheet_plantilla["C60"].value = ""
 
         #introducir datos
-        sheet["C3"] = Muestra.nombre + " - " + Muestra.fabricante
-        sheet["C5"] = Muestra.nombre
-        sheet["C6"] = Muestra.nombre
-        sheet["C7"] = Muestra.fabricante
-        sheet["C15"] = Muestra.test
-        sheet["C21"] = Muestra.hours
-        sheet["C22"] = Muestra.meses
+        sheet_plantilla["C3"].value = Muestra.nombre + " - " + Muestra.fabricante
+        sheet_plantilla["C5"].value = Muestra.nombre
+        sheet_plantilla["C6"].value = Muestra.nombre
+        sheet_plantilla["C7"].value = Muestra.fabricante
+        sheet_plantilla["C11"].value = Muestra.fechamedida
+        sheet_plantilla["C12"].value = Muestra.id_medida
+        sheet_plantilla["C15"].value = Muestra.test
+        sheet_plantilla["C21"].value = Muestra.hours
+        sheet_plantilla["C22"].value = Muestra.meses
+        sheet_plantilla["C23"].value = str(Muestra.col_uv_ref["r_uv"])
 
-        wb.save(excel_path_output)
-        wb.close()
-        print(f"📂 Archivo guardado en: {excel_path_output}")
+        # Copiar la hoja sin renombrarla
+        new_sheet = sheet_plantilla.copy(after=wb_destino.sheets[wb_destino.sheets.count - 1])
+
+        # Renombrar la hoja copiada
+        new_sheet.name = Muestra.nombre + "_" + Muestra.id_medida
+
+        wb_plantilla.close()
+
+        print(f" Archivo guardado en: {Muestra.path_output}")
 
     except Exception as e:
         print(f"❌ Error copiando datos en Excel: {e}")

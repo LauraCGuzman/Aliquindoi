@@ -3,7 +3,7 @@ import numpy as np
 import re
 class Muestra:
     def __init__(self, nombre_muestra, archivos_ir, file_path_zero_base_uv, file_paths_muestras_uv, referencias_ir,
-                 referencias_uv, datos_basicos):
+                 referencias_uv, datos_basicos, excel_path_output):
         self.nombre = nombre_muestra
         self.archivo_tfir = archivos_ir
         self.lista_espect_muestras = file_paths_muestras_uv
@@ -18,6 +18,9 @@ class Muestra:
         self.hours = datos_basicos["hours"]
         self.meses = datos_basicos["months"]
         self.temperatura = datos_basicos["temperatura"]
+        self.fechamedida = datos_basicos["fecha_medida"]["dd/mm/yyyy"]
+        self.id_medida = datos_basicos["fecha_medida"]["yyyyMMdd"]
+        self.path_output = excel_path_output
 
     def leer_datos_referencia(self, column, type):
         if type == "uv":

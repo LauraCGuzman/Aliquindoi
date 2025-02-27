@@ -8,6 +8,21 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkcalendar import Calendar
 
+
+
+def preguntar_output_excel():
+    """Abre un cuadro de diálogo para que el usuario seleccione dónde guardar el archivo Excel."""
+    root = Tk.Tk()
+    root.withdraw()  # Oculta la ventana principal
+
+    file_path = filedialog.asksaveasfilename(
+        defaultextension=".xlsx",
+        filetypes=[("Archivos de Excel", "*.xlsx"), ("Todos los archivos", "*.*")],
+        title="Guardar archivo Excel como..."
+    )
+    root.destroy()
+    return file_path
+
 def elegir_test_referencias(tipo):
     """Función simulada que devuelve opciones para los menús desplegables."""
     if tipo == "testsite":
