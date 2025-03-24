@@ -175,7 +175,7 @@ def pregunta_tipos_test():
     frame_medidas.pack()
 
     variable_medida = Tk.StringVar(value="Reflectancia")
-    for medida in ["Reflectancia", "Absortancia", "Transmitancia"]:
+    for medida in ["Reflectancia", "Absortancia", "Transmitancia CSP", "Transmitancia PV"]:
         Tk.Radiobutton(frame_medidas, text=medida, variable=variable_medida, value=medida).pack(side=Tk.LEFT)
 
     # Opciones de aparatos
@@ -370,6 +370,8 @@ def espectro_medidas_zero_base_auto(muestra, carpeta):
 
     archivos_base = encontrar_archivos_asc_por_nombre("base_", carpeta)
     archivos_zero = encontrar_archivos_asc_por_nombre("zero_", carpeta)
+    archivos_ventana = encontrar_archivos_asc_por_nombre("ventana_", carpeta)
+    archivos_ventanabase = encontrar_archivos_asc_por_nombre("ventanabase_", carpeta)
     archivos_muestra = encontrar_archivos_asc_por_nombre(muestra, carpeta)
 
     if len(archivos_base) > 1:
@@ -395,7 +397,7 @@ def espectro_medidas_zero_base_auto(muestra, carpeta):
         # Dejar solo el archivo base más cercano
         archivos_base = [archivo_base_cercano[0]]
 
-    archivos_zero_base = {"ZeroLine": archivos_zero[0], "BaseLine": archivos_base[0]}
+    archivos_zero_base = {"ZeroLine": archivos_zero[0], "BaseLine": archivos_base[0], "ventana":archivos_ventana,"ventanabase":archivos_ventanabase}
     
     return archivos_zero_base, archivos_muestra
 
@@ -404,32 +406,31 @@ def buscar_hojas(hojas, patrones):
 
 def seleccionar_unico_valor(diccionario, claves):
     for clave in claves:
-        diccionario[clave] = diccionario[clave][0] if diccionario[clave] else None
+        valor = diccionario.get(clave)
+        diccionario[clave] = valor[0] if isinstance(valor, list) and valor else None
 
-def ftir_medidas_auto(archivos_ir, muestra, archivo_tfir, ventana=False, tipo_ftir="ambos"):
+def ftir_medidas_auto(archivos_ir, muestra, archivo_ftir, ventana, tipo_ftir):
     # Leer las hojas del archivo Excel
     try:
-        hojas = pd.ExcelFile(archivo_tfir).sheet_names
+        hojas = pd.ExcelFile(archivo_ftir).sheet_names
     except Exception as e:
         messagebox.showerror("Error", f"No se pudo leer el archivo Excel.\n{e}")
         return None
 
-    patrones_comunes = ["zero_"]
-    patrones_ventana = ["refnegro_", "ventana_", "ventanaoro_", "ventananegro_"]
+    patrones_comunes = ["zero_", "baseoro_"]
+    patrones_ventana = ["basenegro_", "ventana_", "ventanaoro_", "ventananegro_"]
 
-    if tipo_ftir == "ambos":
-        patrones = ["reforo_", muestra] + patrones_comunes
-        if ventana:
-            patrones += patrones_ventana
-    elif tipo_ftir == "muestras":
-        patrones = [muestra]
+    if tipo_ftir == "muestras":
+        hojas_encontradas = {"muestras": [hoja for hoja in hojas if hoja.startswith(muestra)]}
+        print("hojas encontradas:", hojas_encontradas)
+
     elif tipo_ftir == "referencias":
-        patrones = ["base_"] + patrones_comunes
+        patrones = patrones_comunes
         if ventana:
             patrones += patrones_ventana
 
-    hojas_encontradas = buscar_hojas(hojas, patrones)
-    seleccionar_unico_valor(hojas_encontradas, ["reforo_", "zero_", "base_", "refnegro_", "ventana_", "ventanaoro_", "ventananegro_"])
+        hojas_encontradas = buscar_hojas(hojas, patrones)
+        seleccionar_unico_valor(hojas_encontradas, ["baseoro_", "zero_", "basenegro_", "ventana_", "ventanaoro_", "ventananegro_"])
 
     archivos_ir.update(hojas_encontradas)
 
@@ -460,7 +461,7 @@ def elegir_columnas_referencia(nombre_pestana, mensaje):
 
     nombre_elegido = Tk.StringVar()  # Variable para almacenar la selección
 
-    label_columna = Tk.Label(ventana, text="Seleccione la columna:")
+    label_columna = Tk.Label(ventana, text=mensaje)
     label_columna.pack(pady=5)
 
     combo_columna = ttk.Combobox(ventana, values=columnas, state="readonly")
@@ -499,7 +500,6 @@ def elegir_test_referencias(nombre_pestana):
         return None
 
 
-#funciones no usadas, pendientes de revisar
 def preguntar_dato_simple(titulo, pregunta):
     # Crear la ventana principal
     root = Tk.Tk()
@@ -508,230 +508,6 @@ def preguntar_dato_simple(titulo, pregunta):
     # Obtener el nombre de la muestra desde un cuadro de diálogo
     dato = simpledialog.askstring(title=titulo, prompt=pregunta)
     return dato
-def nombre_muestra():
-    '''
-      Programa que pide al usuario mediante una ventana emergente el nombre de la muestra
-      y la guarda en la instancia "muestra".
-    :return:
-    '''
-    nombre_muestra = preguntar_dato_simple("Nombre de la muestra", "Introduzca el nombre de la muestra:")
-
-    return nombre_muestra
-def archivo_tfir_base_zero_samples():
-    # Seleccionar archivo Excel
-    archivo_tfir = filedialog.askopenfilename(
-        title="Seleccionar archivo Excel ftir",
-        filetypes=[("Archivos Excel", "*.xlsx;*.xls")]
-    )
-
-    if not archivo_tfir:
-        print("No se seleccionó ningún archivo.")
-        return None
-
-    # Leer las hojas del archivo Excel
-    try:
-        hojas = pd.ExcelFile(archivo_tfir).sheet_names
-    except Exception as e:
-        messagebox.showerror("Error", f"No se pudo leer el archivo Excel.\n{e}")
-        return None
-
-    # Crear la ventana de selección de hojas
-    ventana_seleccion = Tk.Tk()
-    ventana_seleccion.title("Seleccionar hojas")
-    ventana_seleccion.geometry("400x500")  # Ajustar tamaño de la ventana
-
-    # Variables para las selecciones
-    baseline_var = Tk.StringVar(value=hojas[0])  # Seleccionar la primera hoja por defecto
-    zeroline_var = Tk.StringVar(value=hojas[0])
-
-    # Etiqueta y desplegable para baseline
-    ttk.Label(ventana_seleccion, text="Seleccionar hoja Baseline:").pack(pady=5)
-    baseline_menu = ttk.OptionMenu(ventana_seleccion, baseline_var, None, *hojas)
-    baseline_menu.pack(pady=5)
-
-    # Etiqueta y desplegable para zeroline
-    ttk.Label(ventana_seleccion, text="Seleccionar hoja Zeroline:").pack(pady=5)
-    zeroline_menu = ttk.OptionMenu(ventana_seleccion, zeroline_var, None, *hojas)
-    zeroline_menu.pack(pady=5)
-
-    # Etiqueta y lista de selección múltiple para muestras
-    ttk.Label(ventana_seleccion, text="Seleccionar hojas Muestras:").pack(pady=5)
-    listbox_muestras = Tk.Listbox(ventana_seleccion, selectmode=Tk.MULTIPLE, height=15, exportselection=False)
-    listbox_muestras.pack(pady=5, fill=Tk.BOTH, expand=True)
-
-    # Cargar las hojas en el Listbox
-    for hoja in hojas:
-        listbox_muestras.insert(Tk.END, hoja)
-
-    # Variable para almacenar el resultado
-    resultado = {"archivo": None, "baseline": None, "zeroline": None, "muestras": []}
-
-    def confirmar_seleccion():
-        # Obtener las selecciones
-        baseline = baseline_var.get()
-        zeroline = zeroline_var.get()
-        muestras_indices = listbox_muestras.curselection()
-        if muestras_indices:
-            muestras = [hojas[i] for i in muestras_indices]
-        else:
-            muestras = []
-
-        # Validar las selecciones
-        if not baseline:
-            messagebox.showerror("Error", "Debe seleccionar una hoja como Baseline.")
-            return
-        if not zeroline:
-            messagebox.showerror("Error", "Debe seleccionar una hoja como Zeroline.")
-            return
-        if not muestras:
-            messagebox.showerror("Error", "Debe seleccionar al menos una hoja como Muestra.")
-            return
-
-        # Guardar las selecciones en el resultado
-        resultado["archivo"] = archivo_tfir
-        resultado["baseline"] = baseline
-        resultado["zeroline"] = zeroline
-        resultado["muestras"] = muestras
-
-        # Cerrar la ventana
-        ventana_seleccion.quit()
-
-    # Botón para confirmar las selecciones
-    ttk.Button(ventana_seleccion, text="Confirmar selección", command=confirmar_seleccion).pack(pady=10)
-
-    ventana_seleccion.mainloop()
-    ventana_seleccion.destroy()  # Asegurar que la ventana se destruya completamente
-
-    # Devolver el resultado
-    return resultado
-
-
-def archivos_espectofotometro():
-    print("leyendo resultados del espectofotómetro")
-    # Configurar Tkinter
-    root = Tk.Tk()
-    root.withdraw()  # Ocultar la ventana principal
-
-    # Seleccionar archivo para ZeroLine y BaseLine
-    archivos_zero_base = {}
-    for tipo in ['ZeroLine', 'BaseLine']:
-        print(f"Seleccione el archivo para {tipo}")
-        archivos_zero_base[tipo] = filedialog.askopenfilename(
-            title=f"Selecciona el archivo para {tipo}",
-            filetypes=[("Archivos ASC", "*.asc")]
-        )
-
-    # Seleccionar múltiples archivos para las medidas
-    file_paths_muestras = filedialog.askopenfilenames(
-        title="Selecciona los archivos para todas las medidas",
-        filetypes=[("Archivos ASC", "*.asc")]
-    )
-
-    # Devolver las rutas seleccionadas
-    return archivos_zero_base, file_paths_muestras
-
-def seleccionar_spectro_referencia_IR_UV():
-    # Definir las listas de columnas
-    columns_IR = ["FS1 (specular FISE absorber)", "FS2 (diffuse BSII absorber)", "Gold specular",
-                  "Gold diffuse RT-Au02c", "None"]
-    columns_UV = ["Grey spectralon 10% (provided by Octalab in 2021)", "ref2"]
-
-
-    # Crear la ventana de selección de hojas
-    ventana_seleccion = Tk.Tk()
-    ventana_seleccion.title("Seleccionar espectros de referencia")
-    ventana_seleccion.geometry("400x400")  # Ajustar tamaño de la ventana
-
-    # Variables para las selecciones
-    ir_var = Tk.StringVar(value= columns_IR)  # Seleccionar la primera hoja por defecto
-    uv_var = Tk.StringVar(value= columns_UV)
-
-    # Etiqueta y desplegable para baseline
-    ttk.Label(ventana_seleccion, text="Seleccionar referencia IR").pack(pady=5)
-    baseline_menu = ttk.OptionMenu(ventana_seleccion, ir_var, None, *columns_IR)
-    baseline_menu.pack(pady=5)
-
-    # Etiqueta y desplegable para zeroline
-    ttk.Label(ventana_seleccion, text="Seleccionar referencia UV:").pack(pady=5)
-    zeroline_menu = ttk.OptionMenu(ventana_seleccion, uv_var, None, *columns_UV)
-    zeroline_menu.pack(pady=5)
-
-    # Variable para almacenar el resultado
-    resultado = {"ir_var": ir_var, "uv_var": uv_var}
-
-    def confirmar_seleccion():
-        # Obtener las selecciones
-        ir_selection = ir_var.get()
-        uv_selection = uv_var.get()
-
-        # Validar las selecciones
-        if not ir_selection:
-            messagebox.showerror("Error", "Debe seleccionar una referencia IR.")
-            return
-        if not uv_selection:
-            messagebox.showerror("Error", "Debe seleccionar una referencia UV.")
-            return
-
-        # Guardar las selecciones en el resultado
-        resultado["ir_var"] = ir_selection
-        resultado["uv_var"] = uv_selection
-
-        # Cerrar la ventana
-        ventana_seleccion.quit()
-
-    # Botón para confirmar las selecciones
-    ttk.Button(ventana_seleccion, text="Confirmar selección", command=confirmar_seleccion).pack(pady=10)
-
-    ventana_seleccion.mainloop()
-    ventana_seleccion.destroy()  # Asegurar que la ventana se destruya completamente
-
-    # Devolver el resultado
-    return resultado
-def seleccionar_spectro_referencia_UV():
-    # Definir las listas de columnas
-    columns_UV = ["Grey spectralon 10% (provided by Octalab in 2021)", "ref2"]
-
-
-    # Crear la ventana de selección de hojas
-    ventana_seleccion = Tk.Tk()
-    ventana_seleccion.title("Seleccionar espectros de referencia")
-    ventana_seleccion.geometry("400x400")  # Ajustar tamaño de la ventana
-
-    # Variables para las selecciones
-    uv_var = Tk.StringVar(value= columns_UV)
-
-    # Etiqueta y desplegable para zeroline
-    ttk.Label(ventana_seleccion, text="Seleccionar referencia UV:").pack(pady=5)
-    zeroline_menu = ttk.OptionMenu(ventana_seleccion, uv_var, None, *columns_UV)
-    zeroline_menu.pack(pady=5)
-
-    # Variable para almacenar el resultado
-    resultado = {"ir_var": "NaN", "uv_var": uv_var}
-
-    def confirmar_seleccion():
-        # Obtener las selecciones
-        uv_selection = uv_var.get()
-
-        # Validar las selecciones
-        if not uv_selection:
-            messagebox.showerror("Error", "Debe seleccionar una referencia UV.")
-            return
-
-        # Guardar las selecciones en el resultado
-        resultado["ir_var"] = "NaN"
-        resultado["uv_var"] = uv_selection
-
-        # Cerrar la ventana
-        ventana_seleccion.quit()
-
-    # Botón para confirmar las selecciones
-    ttk.Button(ventana_seleccion, text="Confirmar selección", command=confirmar_seleccion).pack(pady=10)
-
-    ventana_seleccion.mainloop()
-    ventana_seleccion.destroy()  # Asegurar que la ventana se destruya completamente
-
-    # Devolver el resultado
-    return resultado
 
 
 

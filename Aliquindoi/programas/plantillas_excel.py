@@ -1,4 +1,3 @@
-import os
 import xlwings as xw
 
 def leer_asc_para_exportar_excel(path_asc):
@@ -27,23 +26,34 @@ def leer_asc_para_exportar_excel(path_asc):
     return data
 
 def elegir_plantilla(Muestra):
-    path = Muestra.path_zero
+    path = Muestra.archivo_uv["zero"]
     with open(path, 'r') as file:
         lines = file.readlines()
 
     linea = lines[-1]
     split_line = linea.split()
-    medida = split_line[0].replace(",", ".")
-    medida = float(medida)
-    medida = int(medida)
+    medida_nm = split_line[0].replace(",", ".")
+    medida_nm = float(medida_nm)
+    medida_nm = int(medida_nm)
 
-    if medida == 320:
-        excel_path = "programas/202501_refl_320.xls"
-    elif medida == 300:
-        excel_path = "programas/202501_refl_300.xls"
-    else:
-        excel_path = "programas/202501_refl_280.xls"
-    print("Plantilla elegida: ", excel_path)
+    if Muestra.tipo_medida == "Reflectancia":
+        if medida_nm == 320:
+            excel_path = "programas/202501_refl_320.xls"
+        elif medida_nm == 300:
+            excel_path = "programas/202501_refl_300.xls"
+        else:
+            excel_path = "programas/202501_refl_280.xls"
+        print("Plantilla elegida: ", excel_path)
+    elif Muestra.tipo_medida == "Transmitancia CSP":
+        if medida_nm == 320:
+            excel_path = "programas/202501_transcsp_320.xls"
+        elif medida_nm == 300:
+            excel_path = "programas/202501_transcsp_300.xls"
+        else:
+            excel_path = "programas/202501_transcsp_280.xls"
+        print("Plantilla elegida: ", excel_path)
+    elif Muestra.tipo_medida == "Transmitancia PV":
+        excel_path = "programas/2025_trans_320nm_PV.xls"
 
     return excel_path
 
@@ -117,6 +127,60 @@ def copiar_datos_excel(Muestra, wb_destino):
         sheet_plantilla["C21"].value = Muestra.hours
         sheet_plantilla["C22"].value = Muestra.meses
         sheet_plantilla["C23"].value = str(Muestra.col_uv_ref["r_uv"])
+
+        # Copiar la hoja sin renombrarla
+        new_sheet = sheet_plantilla.copy(after=wb_destino.sheets[wb_destino.sheets.count - 1])
+
+        # Renombrar la hoja copiada
+        new_sheet.name = Muestra.nombre + "_" + Muestra.id_medida
+
+        wb_plantilla.close()
+
+        print(f" Archivo guardado en: {Muestra.path_output}")
+
+    except Exception as e:
+        print(f"❌ Error copiando datos en Excel: {e}")
+
+def copiar_datos_excel_absorbedores(Muestra, df, wb_destino, SWR_uv, SWA_uv, emitancia, temperatura,
+                                    dataframe_ir, dataframe_uv):
+
+    plantilla_path = "programas/abs_plantilla.xlsx"
+
+    print(f" Intentando abrir plantilla: {plantilla_path}")
+    print(f" Intentando abrir libro de destino: {Muestra.path_output}")
+
+    try:
+        wb_plantilla = xw.Book(plantilla_path)  # Plantilla
+
+        app = wb_destino.app  # Obtener la aplicación de Excel
+        app.display_alerts = False  # Desactivar alertas
+
+        sheet_plantilla = wb_plantilla.sheets['Results']  # Hoja de la plantilla
+
+        # introducir datos
+        sheet_plantilla["I1"].value = Muestra.proyecto
+        sheet_plantilla["I2"].value = Muestra.nombre + " - " + Muestra.fabricante
+        sheet_plantilla["K5"].value = Muestra.nombre
+        sheet_plantilla["M1"].value = Muestra.fabricante
+        sheet_plantilla["K1"].value = Muestra.fechamedida
+        sheet_plantilla["K2"].value = Muestra.id_medida
+        sheet_plantilla["I3"].value = Muestra.test
+        sheet_plantilla["I4"].value = Muestra.hours
+        sheet_plantilla["I5"].value = Muestra.meses
+        sheet_plantilla["K3"].value = str(Muestra.col_uv_ref["r_uv"])
+        sheet_plantilla["K4"].value = str(Muestra.col_ir_ref["r_oro"])+", "+str(Muestra.col_ir_ref["r_negro"])
+
+        sheet_plantilla["I7"].value = SWR_uv
+        sheet_plantilla["I8"].value = SWA_uv
+        sheet_plantilla["I9"].value = temperatura
+        #sheet_plantilla["I10"].value = emitancia
+
+        sheet_plantilla.range("A5").options(index=False, header=False).value = df["µm"].values.reshape(-1, 1)
+        sheet_plantilla.range("B5").options(index=False, header=False).value = df["refl"].values.reshape(-1, 1)
+        sheet_plantilla.range("C5").options(index=False, header=False).value = df["abs"].values.reshape(-1, 1)
+
+        sheet_plantilla.range("X2").options(index=False, header=True).value = [dataframe_ir.columns.tolist()] + dataframe_ir.values.tolist()
+        sheet_plantilla.range("AQ2").options(index=False, header=True).value = [dataframe_uv.columns.tolist()] + dataframe_uv.values.tolist()
 
         # Copiar la hoja sin renombrarla
         new_sheet = sheet_plantilla.copy(after=wb_destino.sheets[wb_destino.sheets.count - 1])
