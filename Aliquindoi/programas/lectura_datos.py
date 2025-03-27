@@ -9,6 +9,12 @@ from tkinter import ttk
 from tkcalendar import Calendar
 
 
+def leer_archivo_referencias():
+    directorio_script = os.path.dirname(os.path.realpath(__file__))
+    archivo_referencias = os.path.normpath(
+        os.path.join(directorio_script, "../para_el_usuario/references.xlsx"))
+
+    return archivo_referencias
 
 def preguntar_output_excel():
     """Abre un cuadro de diálogo para que el usuario seleccione dónde guardar el archivo Excel."""
@@ -22,17 +28,6 @@ def preguntar_output_excel():
     )
     root.destroy()
     return file_path
-
-def elegir_test_referencias(tipo):
-    """Función simulada que devuelve opciones para los menús desplegables."""
-    if tipo == "testsite":
-        return ["Test A", "Test B", "Test C"]
-    elif tipo == "fabricantes":
-        return ["Fabricante 1", "Fabricante 2", "Fabricante 3"]
-    elif tipo == "proyectos":
-        return ["Proyecto X", "Proyecto Y", "Proyecto Z"]
-    else:
-        return []
 
 def pregunta_tipos_test():
     # Crear un diccionario para almacenar las variables seleccionadas
@@ -438,8 +433,10 @@ def ftir_medidas_auto(archivos_ir, muestra, archivo_ftir, ventana, tipo_ftir):
 
 
 def elegir_columnas_referencia(nombre_pestana, mensaje):
+    archivo_referencias = leer_archivo_referencias()
+
     try:
-        data_ref = pd.read_excel("references.xlsx", sheet_name=nombre_pestana)
+        data_ref = pd.read_excel(archivo_referencias, sheet_name=nombre_pestana)
     except FileNotFoundError:
         print(f"Error: No se encontró el archivo references.xlsx")
         return None
@@ -482,8 +479,9 @@ def elegir_columnas_referencia(nombre_pestana, mensaje):
 
 
 def elegir_test_referencias(nombre_pestana):
+    archivo_referencias = leer_archivo_referencias()
     try:
-        data_ref = pd.read_excel("references.xlsx", sheet_name=nombre_pestana, header=None) # Lee sin encabezados
+        data_ref = pd.read_excel(archivo_referencias, sheet_name=nombre_pestana, header=None) # Lee sin encabezados
         if data_ref.empty:
             print(f"Advertencia: La pestaña '{nombre_pestana}' está vacía.")
             return []  # Devuelve una lista vacía si la pestaña está vacía

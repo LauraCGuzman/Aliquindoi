@@ -1,4 +1,5 @@
 import xlwings as xw
+import os
 
 def leer_asc_para_exportar_excel(path_asc):
     with open(path_asc, 'r') as file:
@@ -38,22 +39,22 @@ def elegir_plantilla(Muestra):
 
     if Muestra.tipo_medida == "Reflectancia":
         if medida_nm == 320:
-            excel_path = "programas/202501_refl_320.xls"
+            excel_path = "../Aliquindoi/para_el_usuario/202501_refl_320.xls"
         elif medida_nm == 300:
-            excel_path = "programas/202501_refl_300.xls"
+            excel_path = "../Aliquindoi/para_el_usuario/202501_refl_300.xls"
         else:
-            excel_path = "programas/202501_refl_280.xls"
+            excel_path = "../Aliquindoi/para_el_usuario/202501_refl_280.xls"
         print("Plantilla elegida: ", excel_path)
     elif Muestra.tipo_medida == "Transmitancia CSP":
         if medida_nm == 320:
-            excel_path = "programas/202501_transcsp_320.xls"
+            excel_path = "../Aliquindoi/para_el_usuario/202501_transcsp_320.xls"
         elif medida_nm == 300:
-            excel_path = "programas/202501_transcsp_300.xls"
+            excel_path = "../Aliquindoi/para_el_usuario/202501_transcsp_300.xls"
         else:
-            excel_path = "programas/202501_transcsp_280.xls"
+            excel_path = "../Aliquindoi/para_el_usuario/202501_transcsp_280.xls"
         print("Plantilla elegida: ", excel_path)
     elif Muestra.tipo_medida == "Transmitancia PV":
-        excel_path = "programas/2025_trans_320nm_PV.xls"
+        excel_path = "../Aliquindoi/para_el_usuario/2025_trans_320nm_PV.xls"
 
     return excel_path
 
@@ -67,7 +68,7 @@ def copiar_datos_excel(Muestra, wb_destino):
     print(f" Intentando abrir plantilla: {plantilla_path}")
     print(f" Intentando abrir libro de destino: {Muestra.path_output}")
 
-    n_muestras = len(Muestra.lista_espect_muestras)
+    n_muestras = len(Muestra.archivo_uv["path_muestras"])
 
     try:
         wb_plantilla = xw.Book(plantilla_path)  # Plantilla
@@ -99,15 +100,15 @@ def copiar_datos_excel(Muestra, wb_destino):
             print(f"✅ Copiados datos de {file_path} en columna {col_letter}{start_row}")
 
         # Copiar datos de los archivos de medición
-        for i, file in enumerate(Muestra.lista_espect_muestras, start=1):
+        for i, file in enumerate(Muestra.archivo_uv["path_muestras"], start=1):
             if i > 3:
                 print(f"⚠️ Más de 3 mediciones. Ignorando {file}")
                 break
             insertar_datos_en_columna(file, measurement_cells[i], sheet_plantilla)
 
         # Copiar datos de Zero Line y Base Line
-        insertar_datos_en_columna(Muestra.path_zero, zero_line_cell, sheet_plantilla)
-        insertar_datos_en_columna(Muestra.path_base, baseline_cell, sheet_plantilla)
+        insertar_datos_en_columna(Muestra.archivo_uv["zero"], zero_line_cell, sheet_plantilla)
+        insertar_datos_en_columna(Muestra.archivo_uv["base"], baseline_cell, sheet_plantilla)
 
         #Eliminar contenido de celdas en función de número de medidas por muestra
         if n_muestras == 2:
@@ -144,7 +145,9 @@ def copiar_datos_excel(Muestra, wb_destino):
 def copiar_datos_excel_absorbedores(Muestra, df, wb_destino, SWR_uv, SWA_uv, emitancia, temperatura,
                                     dataframe_ir, dataframe_uv):
 
-    plantilla_path = "programas/abs_plantilla.xlsx"
+    directorio_script = os.path.dirname(os.path.realpath(__file__))
+    plantilla_path = os.path.normpath(
+        os.path.join(directorio_script, "../para_el_usuario/abs_plantilla.xlsx"))
 
     print(f" Intentando abrir plantilla: {plantilla_path}")
     print(f" Intentando abrir libro de destino: {Muestra.path_output}")

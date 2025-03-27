@@ -3,6 +3,9 @@ from unittest.mock import inplace
 import pandas as pd
 import numpy as np
 import re
+import os
+
+
 
 class Muestra:
     def __init__(self, nombre_muestra, archivos_ir, file_path_zero_base_uv, file_paths_muestras_uv, referencias_ir,
@@ -22,10 +25,25 @@ class Muestra:
         self.fechamedida = datos_basicos["fecha_medida"]["dd/mm/yyyy"]
         self.id_medida = datos_basicos["fecha_medida"]["yyyyMMdd"]
         self.path_output = excel_path_output
-        self.archivo_uv = {
-            "path_muestras": file_paths_muestras_uv, "zero": file_path_zero_base_uv["ZeroLine"], "base": file_path_zero_base_uv["BaseLine"],
-            "ventana": file_path_zero_base_uv["ventana"][0], "ventanabase": file_path_zero_base_uv["ventanabase"][0]
-        }
+        try:
+            self.archivo_uv = {
+                "path_muestras": file_paths_muestras_uv, "zero": file_path_zero_base_uv["ZeroLine"], "base": file_path_zero_base_uv["BaseLine"],
+                "ventana": file_path_zero_base_uv["ventana"][0], "ventanabase": file_path_zero_base_uv["ventanabase"][0]
+            }
+        except:
+            self.archivo_uv = {
+                "path_muestras": file_paths_muestras_uv, "zero": file_path_zero_base_uv["ZeroLine"],
+                "base": file_path_zero_base_uv["BaseLine"],
+                "ventana": file_path_zero_base_uv["ventana"], "ventanabase": file_path_zero_base_uv["ventanabase"]
+            }
+
+    def leer_archivo_referencias(self):
+        directorio_script = os.path.dirname(os.path.realpath(__file__))
+        print(directorio_script)
+        archivo_referencias = os.path.normpath(
+            os.path.join(directorio_script, "para_el_usuario/references.xlsx"))
+        print(archivo_referencias)
+        return archivo_referencias
 
     def leer_datos_referencia(self, referencias):
         """
@@ -60,7 +78,8 @@ class Muestra:
                     continue  # Si no se encuentra ninguna de las anteriores, continuar.
 
                 try:
-                    data_ref = pd.read_excel("references.xlsx", sheet_name=hoja, usecols=[col_nm, columna_excel])
+                    archivo_referencias = self.leer_archivo_referencias()
+                    data_ref = pd.read_excel(archivo_referencias, sheet_name=hoja, usecols=[col_nm, columna_excel])
                     data_ref.rename(columns={col_nm: "nm", columna_excel: columna_nombre}, inplace=True)
 
                     if col_nm == "wvl [µm]":
@@ -218,7 +237,8 @@ class Muestra:
 
         # Leer datos de referencia
         data_ref = self.leer_datos_referencia(self.col_uv_ref)
-        data_espectro = pd.read_excel("references.xlsx", sheet_name="absorbedores_espectro", usecols=["wvl [nm]", "ASTM G173 direct"])
+        archivo_referencias = self.leer_archivo_referencias()
+        data_espectro = pd.read_excel(archivo_referencias, sheet_name="absorbedores_espectro", usecols=["wvl [nm]", "ASTM G173 direct"])
         data_espectro.rename(columns={"ASTM G173 direct": "ASTM", "wvl [nm]": "nm"}, inplace= True)
         # Combinar datos de referencia
         data_uv = pd.merge(data_uv, data_ref, on="nm", how="inner")
