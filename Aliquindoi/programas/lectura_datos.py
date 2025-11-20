@@ -7,6 +7,8 @@ import tkinter as Tk
 from tkinter import messagebox
 from tkinter import ttk
 from tkcalendar import Calendar
+import re
+from pathlib import Path
 
 
 def leer_archivo_referencias():
@@ -26,6 +28,7 @@ def preguntar_output_excel():
         filetypes=[("Archivos de Excel", "*.xlsx"), ("Todos los archivos", "*.*")],
         title="Guardar archivo Excel como..."
     )
+    root.update()  # Asegura que los eventos de Tkinter se procesen correctamente
     root.destroy()
     return file_path
 
@@ -268,7 +271,20 @@ def detener_analisis():
         print("Fin del programa")
     return respuesta
 
-def nombres_muestras_auto():
+def nombres_muestras_auto(paths_espectofotometro):
+    nombres_muestras = []
+
+    for path in paths_espectofotometro:
+        archivos = encontrar_archivos_asc_por_nombre("sample_", path)
+        print("archivos encontrados: ", archivos)
+        resultados = [re.search(r'sample_(.*)-[^-]+$', archivo).group(1) for archivo in archivos if
+                      re.search(r'sample_(.*)-[^-]+\.Sample\.asc$', archivo)] #cambiar esto
+        muestras_carpetas = list(set(resultados))
+        nombres_muestras.extend(muestras_carpetas)
+    nombres_muestras_sin_duplicados = list(set(nombres_muestras))
+
+    return sorted(nombres_muestras_sin_duplicados)
+def nombres_muestras_preguntar():
     """
         Cuadro de diálogo para ingresar múltiples nombres de muestras.
 
@@ -338,19 +354,32 @@ def archivo_tfir(mensaje):
         return None
     return archivo_tfir
 
-def carpeta_espectofotometro():
+def carpeta_con_archivos(mensaje):
     # Configurar Tkinter
     root = Tk.Tk()
     root.withdraw()  # Ocultar la ventana principal
 
     # Seleccionar carpeta
-    carpeta = filedialog.askdirectory(
-        title="Selecciona la carpeta de datos del espectrofotómetro",
+    carpeta_ppal = filedialog.askdirectory(
+        title= mensaje,
         initialdir="."  # Iniciar en el directorio actual
     )
 
-    # Devolver las rutas seleccionadas
-    return carpeta
+    # Si el usuario cancela la selección, filedialog.askdirectory() devuelve una cadena vacía
+    if not carpeta_ppal:
+        return [] # O podrías devolver None, o manejarlo como prefieras
+
+    # Inicializar la lista de carpetas con la carpeta principal seleccionada
+    carpetas = [carpeta_ppal]
+
+    # Obtener todas las subcarpetas dentro de la carpeta seleccionada
+    for sub in os.listdir(carpeta_ppal):
+        full_path = os.path.join(carpeta_ppal, sub)
+        if os.path.isdir(full_path):
+            carpetas.append(full_path)
+
+    # Devolver las rutas seleccionadas (incluyendo la principal si es que fue seleccionada)
+    return carpetas
 
 def encontrar_archivos_asc_por_nombre(nombre, carpeta):
     archivos_encontrados = []
@@ -361,39 +390,55 @@ def encontrar_archivos_asc_por_nombre(nombre, carpeta):
                 archivos_encontrados.append(ruta_completa)
     return archivos_encontrados
 
-def espectro_medidas_zero_base_auto(muestra, carpeta):
+def espectro_medidas_zero_base_auto(muestra, carpetas, datos_basicos):
+    print("Medidas espectofotómetro")
+    for carpeta in carpetas:
+        archivos_muestra = encontrar_archivos_asc_por_nombre("sample_"+ muestra + "-", carpeta)
+        print("archivos muestra encontrados: ", archivos_muestra)
+        if archivos_muestra and (("Reflectancia" in datos_basicos["medida"]) or ("Absortancia" in datos_basicos["medida"])):
+            print("analizando carpeta: ", carpeta)
+            archivos_base = encontrar_archivos_asc_por_nombre("base_", carpeta)
+            archivos_zero = encontrar_archivos_asc_por_nombre("zero_", carpeta)
+            archivos_ventana = encontrar_archivos_asc_por_nombre("ventana_", carpeta)
+            #archivos_ventanabase = encontrar_archivos_asc_por_nombre("ventanabase_", carpeta)
+            print("archivos base: ", archivos_base)
+            print("archivos zero: ", archivos_zero)
+            print("archivos ventana: ", archivos_ventana)
+            if len(archivos_base) > 1:
+                # Leer la fecha y hora de los archivos base y el archivo de muestra
+                fechas_base = []
+                for archivo in archivos_base:
+                    with open(os.path.join(carpeta, archivo), 'r') as f:
+                        lineas = f.readlines()
+                        fecha_base = lineas[3].strip()  # Línea 3 (índice 2)
+                        hora_base = lineas[4].strip()  # Línea 4 (índice 3)
+                        datetime_base = datetime.strptime(f"{fecha_base} {hora_base}", "%y/%m/%d %H:%M:%S.%f")
+                        fechas_base.append((archivo, datetime_base))
+                print("fechas baseline: ", fechas_base)
 
-    archivos_base = encontrar_archivos_asc_por_nombre("base_", carpeta)
-    archivos_zero = encontrar_archivos_asc_por_nombre("zero_", carpeta)
-    archivos_ventana = encontrar_archivos_asc_por_nombre("ventana_", carpeta)
-    archivos_ventanabase = encontrar_archivos_asc_por_nombre("ventanabase_", carpeta)
-    archivos_muestra = encontrar_archivos_asc_por_nombre(muestra, carpeta)
+                with open(os.path.join(carpeta, archivos_muestra[0]), 'r') as f:
+                    lineas = f.readlines()
+                    fecha_muestra = lineas[3].strip()  # Línea 3 (índice 2)
+                    hora_muestra = lineas[4].strip()  # Línea 4 (índice 3)
+                    datetime_muestra = datetime.strptime(f"{fecha_muestra} {hora_muestra}", "%y/%m/%d %H:%M:%S.%f")
+                    print("fecha muestra: ", datetime_muestra)
+                # Encontrar el archivo base con la fecha más cercana a la de la muestra
+                archivo_base_cercano = min(fechas_base, key=lambda x: abs(x[1] - datetime_muestra))
+                print("archivo base cercano: ", archivo_base_cercano)
+                # Dejar solo el archivo base más cercano
+                archivos_base = [archivo_base_cercano[0]]
+                print("archivo base elegido: ", archivos_base)
+            break
+        else: # si es transmitancia, no se usan base y/o zero
+            archivos_zero = ""
+            archivos_base = ""
+            archivos_ventana = ""
+            #archivos_ventanabase = ""
+    if archivos_muestra and (("Reflectancia" in datos_basicos["medida"]) or ("Absortancia" in datos_basicos["medida"])):
+        archivos_zero_base = {"ZeroLine": archivos_zero[0], "BaseLine": archivos_base[0], "ventana":archivos_ventana}
+    else:
+        archivos_zero_base = {"ZeroLine": archivos_zero, "BaseLine": archivos_base, "ventana": archivos_ventana}
 
-    if len(archivos_base) > 1:
-        # Leer la fecha y hora de los archivos base y el archivo de muestra
-        fechas_base = []
-        for archivo in archivos_base:
-            with open(os.path.join(carpeta, archivo), 'r') as f:
-                lineas = f.readlines()
-                fecha_base = lineas[3].strip()  # Línea 3 (índice 2)
-                hora_base = lineas[4].strip()  # Línea 4 (índice 3)
-                datetime_base = datetime.strptime(f"{fecha_base} {hora_base}", "%y/%m/%d %H:%M:%S.%f")
-                fechas_base.append((archivo, datetime_base))
-
-        with open(os.path.join(carpeta, archivos_muestra[0]), 'r') as f:
-            lineas = f.readlines()
-            fecha_muestra = lineas[3].strip()  # Línea 3 (índice 2)
-            hora_muestra = lineas[4].strip()  # Línea 4 (índice 3)
-            datetime_muestra = datetime.strptime(f"{fecha_muestra} {hora_muestra}", "%y/%m/%d %H:%M:%S.%f")
-
-        # Encontrar el archivo base con la fecha más cercana a la de la muestra
-        archivo_base_cercano = min(fechas_base, key=lambda x: abs(x[1] - datetime_muestra))
-
-        # Dejar solo el archivo base más cercano
-        archivos_base = [archivo_base_cercano[0]]
-
-    archivos_zero_base = {"ZeroLine": archivos_zero[0], "BaseLine": archivos_base[0], "ventana":archivos_ventana,"ventanabase":archivos_ventanabase}
-    
     return archivos_zero_base, archivos_muestra
 
 def buscar_hojas(hojas, patrones):
@@ -404,31 +449,205 @@ def seleccionar_unico_valor(diccionario, claves):
         valor = diccionario.get(clave)
         diccionario[clave] = valor[0] if isinstance(valor, list) and valor else None
 
-def ftir_medidas_auto(archivos_ir, muestra, archivo_ftir, ventana, tipo_ftir):
-    # Leer las hojas del archivo Excel
-    try:
-        hojas = pd.ExcelFile(archivo_ftir).sheet_names
-    except Exception as e:
-        messagebox.showerror("Error", f"No se pudo leer el archivo Excel.\n{e}")
-        return None
 
-    patrones_comunes = ["zero_", "baseoro_"]
-    patrones_ventana = ["basenegro_", "ventana_", "ventanaoro_", "ventananegro_"]
+def procesar_cadena(cadena):
+    """
+    Convierte una cadena a minúsculas y elimina todos los caracteres separadores y espacios.
 
-    if tipo_ftir == "muestras":
-        hojas_encontradas = {"muestras": [hoja for hoja in hojas if hoja.startswith(muestra)]}
-        print("hojas encontradas:", hojas_encontradas)
+    Args:
+      cadena: La cadena de texto a procesar.
 
-    elif tipo_ftir == "referencias":
+    Returns:
+      La cadena procesada en minúsculas y sin separadores ni espacios.
+    """
+    cadena = cadena.lower()
+    cadena = cadena.strip()
+    separadores = " ,.-_/"  # Define los separadores a eliminar
+    for separador in separadores:
+        cadena = cadena.replace(separador, "")  # Reemplaza con una cadena vacía (elimina)
+    return cadena
+
+def buscar_y_filtrar_excel_data_ftir(directorios_ftir, nombre_muestra):
+    """
+    Busca archivos Excel con "data" en su nombre en una lista de directorios
+    y sus subcarpetas. Luego, en cada uno de esos archivos, identifica las
+    pestañas que contienen "sample_" + nombre_muestra.
+
+    Args:
+        directorios_ftir (list): Una lista de rutas a los directorios donde buscar.
+        nombre_muestra (str): La cadena que representa el nombre de la muestra a buscar
+                              en los nombres de las pestañas.
+
+    Returns:
+        tuple: Una tupla que contiene:
+               - dict: Un diccionario donde las claves son las rutas completas de los archivos Excel
+                       encontrados, y los valores son listas de nombres de pestañas que cumplen el criterio.
+               - str or None: La fecha extraída del primer archivo encontrado como 'YYYYMMDD' string.
+                              Será None si no se encuentra ningún archivo relevante con fecha.
+    """
+    print("Búsqueda de muestras IR")
+    archivos_excel_filtrados = {}
+    fecha_medida = None
+    #nombre_muestra = procesar_cadena(nombre_muestra) no hace falta, ya está procesado
+    cadena_busqueda_archivo = "data"  # Se busca "data" en lugar de "_data_" según la corrección.
+    cadena_busqueda_pestana = "sample_" + nombre_muestra
+
+    for directorio_ftir in directorios_ftir:
+        print(f"Procesando directorio: {directorio_ftir}")  # Para debug
+        directorio_path = Path(str(directorio_ftir))
+
+        # 2. Barrido de archivos en el directorio actual y subcarpetas.
+        for archivo_path in directorio_path.rglob("*.xlsx"):
+            if cadena_busqueda_archivo in archivo_path.name:
+                ruta_completa_excel = str(archivo_path.resolve())
+                nombre_archivo = archivo_path.name
+                print("archivo muestras encontrado: ", nombre_archivo)
+                try:
+                    xls = pd.ExcelFile(ruta_completa_excel)
+                    nombres_pestanas = xls.sheet_names
+                    pestanas_encontradas = []
+                    for pestana in nombres_pestanas:
+                        cadena_a_procesar = pestana
+
+                        # 1. Remove "sample_" if present
+                        if cadena_a_procesar.startswith("sample_"):
+                            cadena_a_procesar = cadena_a_procesar[len("sample_"):]
+
+                        # 2. Remove everything after the last hyphen if present
+                        if "-" in cadena_a_procesar:
+                            cadena_a_procesar = cadena_a_procesar.rsplit('-', 1)[0]
+
+                        # 3. Process the modified string
+                        pestana_procesado = procesar_cadena(cadena_a_procesar)
+                        pestana_procesado = "sample_"+pestana_procesado
+                        print("Buscando pestana: ", cadena_busqueda_pestana)
+                        print("pestana: ", pestana, " y nombre procesado: ", pestana_procesado)
+                        pattern = re.compile(r"^{}(_.*|$)".format(re.escape(cadena_busqueda_pestana)))
+                        if pattern.match(pestana_procesado):
+                            pestanas_encontradas.append(pestana)
+                    if pestanas_encontradas:
+                        archivos_excel_filtrados[ruta_completa_excel] = pestanas_encontradas
+                        regex_data = r"^(.*?)data"
+                        coincidencia = re.search(regex_data, nombre_archivo)
+                        # Intenta extraer la fecha del nombre del archivo
+                        if coincidencia:
+                            fecha_medida = coincidencia.group(1)
+                        else:
+                            print(f"No se encontró el patrón 'data' en el nombre del archivo: {nombre_archivo}")
+                        break  # Importante: Termina el bucle for actual si se encuentran pestañas
+                    else:
+                         print(f"No se encontraron pestañas que coincidan con '{cadena_busqueda_pestana}' en el archivo: {nombre_archivo}")
+                except Exception as e:
+                    print(f"Error al procesar el archivo Excel '{ruta_completa_excel}': {e}")
+                    continue  # Continúa con el siguiente archivo
+            # Este else se ejecuta si el bucle for interno *no* se completó normalmente
+            else:
+                print(f"No se encontró ningún archivo que coincida en el directorio: {directorio_ftir}")
+
+    return archivos_excel_filtrados, fecha_medida
+
+def buscar_archivos_ref_y_pestanas(directorios_base, lista_patrones, fecha_medida, path_medidas_ftir_muestras):
+    """
+    Busca archivos Excel que contengan "_ref_" en su nombre y la fecha de medida.
+    Primero en los directorios base, y si no se encuentra, usa path_medidas_ftir_muestras.
+    Luego identifica las pestañas que coinciden con cualquiera de los patrones.
+    """
+    archivos_ref_filtrados = {}
+    cadena_busqueda_archivo_ref = fecha_medida + "ref"
+    print("Búsqueda de referencias IR")
+    print("Buscando archivos que contengan:", cadena_busqueda_archivo_ref)
+
+    # Función auxiliar para buscar archivos en un directorio
+    def buscar_en_directorio(directorio):
+        resultados = {}
+        directorio_path = Path(directorio)
+        for archivo_path in directorio_path.rglob("*.xlsx"):
+            if cadena_busqueda_archivo_ref in archivo_path.name:
+                ruta_completa_excel_ref = str(archivo_path.resolve())
+                try:
+                    xls = pd.ExcelFile(ruta_completa_excel_ref)
+                    nombres_pestanas = xls.sheet_names
+                    pestanas_encontradas_ref = [
+                        pestana for pestana in nombres_pestanas if any(patron in pestana for patron in lista_patrones)
+                    ]
+                    if pestanas_encontradas_ref:
+                        resultados[ruta_completa_excel_ref] = pestanas_encontradas_ref
+                        break
+                except Exception as e:
+                    print(f"Error al procesar el archivo Excel '{ruta_completa_excel_ref}': {e}")
+                    continue
+        return resultados
+
+    # 1. Buscar en los directorios base
+    for directorio_base in directorios_base:
+        print(f"Procesando directorio base: {directorio_base}")
+        archivos_ref_filtrados.update(buscar_en_directorio(directorio_base))
+
+    # 2. Si no se encontró ningún archivo ref, usar el archivo de path_medidas_ftir_muestras
+    if not archivos_ref_filtrados:
+        print("No se encontró ningún archivo ref en los directorios base.")
+        ruta_archivo = list(path_medidas_ftir_muestras.keys())[0]
+        print(f"Usando archivo de path_medidas_ftir_muestras: {ruta_archivo}")
+        try:
+            xls = pd.ExcelFile(ruta_archivo)
+            nombres_pestanas = xls.sheet_names
+            pestanas_encontradas_ref = [
+                pestana for pestana in nombres_pestanas if any(patron in pestana for patron in lista_patrones)
+            ]
+            if pestanas_encontradas_ref:
+                archivos_ref_filtrados[ruta_archivo] = pestanas_encontradas_ref
+        except Exception as e:
+            print(f"Error al procesar el archivo Excel '{ruta_archivo}': {e}")
+
+    return archivos_ref_filtrados
+
+def ftir_medidas_auto(path_ftir, nombre_muestra, ventana):
+
+    path_medidas_ftir_muestras, fecha_medida = buscar_y_filtrar_excel_data_ftir(path_ftir, nombre_muestra)
+    print("path medidas: ")
+    print(path_medidas_ftir_muestras)
+    "path_medidas_ftir_muestras = diccionario {ruta: pestana}"
+    print("fecha medida: ", fecha_medida)
+    if path_medidas_ftir_muestras:
+        #patrones_comunes = ["zero_", "baseoro_"]
+        #patrones_ventana = ["basenegro_", "ventana_", "ventanaoro_", "ventananegro_"]
+        patrones_comunes = ["zero_", "base_"]
+        patrones_ventana = ["ventana_"]
+
         patrones = patrones_comunes
         if ventana:
             patrones += patrones_ventana
 
-        hojas_encontradas = buscar_hojas(hojas, patrones)
-        seleccionar_unico_valor(hojas_encontradas, ["baseoro_", "zero_", "basenegro_", "ventana_", "ventanaoro_", "ventananegro_"])
+        archivos_ref_ftir = buscar_archivos_ref_y_pestanas(path_ftir, patrones, fecha_medida, path_medidas_ftir_muestras)
+        print("archivos_ref_ftir: ", archivos_ref_ftir)
+        archivos_ir = { #cambiar, que sea solo base_
+            "path": path_ftir,
+            "zero": {},
+            "base": {},
+            "ventana": {},
+            "path_muestras": path_medidas_ftir_muestras,
+            "path_referencias": archivos_ref_ftir,
+        }
 
-    archivos_ir.update(hojas_encontradas)
+        for ruta_archivo, pestañas in archivos_ref_ftir.items():
+            for pestana in pestañas:
+                if pestana.startswith("zero_"):
+                    if "zero" not in archivos_ir:
+                        archivos_ir["zero"] = {}
+                    archivos_ir["zero"][ruta_archivo] = pestana
+                elif pestana.startswith("base_"):
+                    if "base" not in archivos_ir:
+                        archivos_ir["base"] = {}
+                    archivos_ir["base"][ruta_archivo] = pestana
+                elif pestana.startswith("ventana_"):
+                    if "ventana" not in archivos_ir:
+                        archivos_ir["ventana"] = {}
+                    archivos_ir["ventana"][ruta_archivo] = pestana
 
+        print("archivos ir: ", archivos_ir)
+    else:
+        archivos_ir = {}
+        print("archivos ir: ",archivos_ir)
     return archivos_ir
 
 

@@ -1,12 +1,26 @@
+from enum import unique
+from unittest.mock import inplace
+
 import pandas as pd
-path_asc = "C:/Users/camp_la/Documents/Laura/OPAC/proyecto_automatizar_procesos/reflectores/1000h/20241216 L1/51-1-1.Sample.asc"
+import os
+import re
 
-with open(path_asc, 'r') as file:
-    lines = file.readlines()
+path_espectofotometro = "C:/Users/camp_la/Documents/Laura/OPAC/proyecto_automatizar_procesos/reflectores/1000h/20241216_l2"
 
-del lines[73:79]
+def encontrar_archivos_asc_por_nombre(nombre, carpeta):
+    archivos_encontrados = []
+    for raiz, directorios, archivos in os.walk(carpeta):
+        for archivo in archivos:
+            if archivo.startswith(nombre) and archivo.endswith(".asc"):
+                ruta_completa = os.path.join(raiz, archivo)
+                archivos_encontrados.append(ruta_completa)
+    return archivos_encontrados
 
-i = 1
-for line in lines:
-    print(i, ": ", line)
-    i = i+1
+archivos = encontrar_archivos_asc_por_nombre("sample_", path_espectofotometro)
+print(archivos)
+resultados = [re.search(r'sample_(.*)-[^-]+$', archivo).group(1) for archivo in archivos if re.search(r'sample_(.*)-[^-]+\.Sample\.asc$', archivo)]
+print(resultados)
+muestras = list(set(resultados))
+print(muestras)
+
+

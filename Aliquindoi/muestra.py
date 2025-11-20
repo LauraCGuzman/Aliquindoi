@@ -28,14 +28,11 @@ class Muestra:
         try:
             self.archivo_uv = {
                 "path_muestras": file_paths_muestras_uv, "zero": file_path_zero_base_uv["ZeroLine"], "base": file_path_zero_base_uv["BaseLine"],
-                "ventana": file_path_zero_base_uv["ventana"][0], "ventanabase": file_path_zero_base_uv["ventanabase"][0]
-            }
+                "ventana": file_path_zero_base_uv["ventana"][0]}
         except:
             self.archivo_uv = {
                 "path_muestras": file_paths_muestras_uv, "zero": file_path_zero_base_uv["ZeroLine"],
-                "base": file_path_zero_base_uv["BaseLine"],
-                "ventana": file_path_zero_base_uv["ventana"], "ventanabase": file_path_zero_base_uv["ventanabase"]
-            }
+                "base": file_path_zero_base_uv["BaseLine"], "ventana": file_path_zero_base_uv["ventana"]}
 
     def leer_archivo_referencias(self):
         directorio_script = os.path.dirname(os.path.realpath(__file__))
@@ -62,7 +59,7 @@ class Muestra:
 
         for columna_nombre, columna_excel in referencias.items():
             if columna_excel:  # Verifica si la columna_excel no es None o vacío
-                if columna_nombre in ['r_negro', 'r_oro']:
+                if columna_nombre in ['r_ftir']:
                     hoja = "absorbedores_refl"
                     col_nm = "wvl [µm]"
                 elif columna_nombre == "r_trans_uv" in referencias:
@@ -108,77 +105,85 @@ class Muestra:
 
     def procesar_datos_tfir(self):
         """
-        Procesa datos de FTIR a partir de un diccionario de configuración.
+        Procesa datos de FTIR a partir del diccionario de configuración self.archivo_tfir.
 
         Args:
-            archivo_tfir (dict): Diccionario con la configuración de los archivos FTIR.
+            self: Instancia de la clase que contiene el diccionario 'archivo_tfir'.
 
         Returns:
             pandas.DataFrame: DataFrame combinado con los datos de muestras y referencias.
         """
-
-        path_muestras = self.archivo_tfir['path_muestras']
-        path_referencias = self.archivo_tfir['path_referencias']
-        muestras = self.archivo_tfir['muestras']
-
-        # Leer y procesar muestras
+        archivos_ir = self.archivo_tfir
+        print("archivos_ir")
+        print(archivos_ir)
+        # 1. Leer y procesar muestras
         df_muestras = pd.DataFrame()
-        for i, muestra in enumerate(muestras):
-            try:
-                df = pd.read_excel(path_muestras, sheet_name=muestra, header=4) # Añadido header=4
-                df = df[['nm', '%R']]  # Seleccionar columnas relevantes
-                df = df.rename(columns={'%R': f'I{i + 1}'})  # Renombrar columna %R
-                if df_muestras.empty:
-                    df_muestras = df
-                else:
-                    df_muestras = pd.merge(df_muestras, df, on='nm')
-            except Exception as e:
-                print(f"Error al leer la hoja '{muestra}': {e}")
+        contador_muestras = 0  # Inicializa el contador
 
-        # Leer y procesar referencias
-        referencias = {
-            'zero': self.archivo_tfir['zero_'],
-            'baseoro': self.archivo_tfir['baseoro_'],
-            'basenegro': self.archivo_tfir['basenegro_'],
-            'ventana': self.archivo_tfir['ventana_'],
-            'ventanaoro': self.archivo_tfir['ventanaoro_'],
-            'ventananegro': self.archivo_tfir['ventananegro_']
-        }
+        if 'path_muestras' in archivos_ir and archivos_ir['path_muestras']:
+            for ruta_archivo, lista_hojas in archivos_ir['path_muestras'].items():
+                for hoja in lista_hojas:
+                    try:
+                        df = pd.read_excel(ruta_archivo, sheet_name=hoja, header=4)
+                        df = df[['nm', '%R']]
 
+                        # Incrementa el contador y úsalo para nombrar la columna
+                        contador_muestras += 1
+                        df = df.rename(columns={'%R': f'I{contador_muestras}'})
+
+                        if df_muestras.empty:
+                            df_muestras = df.copy()
+                        else:
+                            df_muestras = pd.merge(df_muestras, df, on='nm', how='outer')
+                    except Exception as e:
+                        print(f"Error al leer la hoja '{hoja}' del archivo '{ruta_archivo}': {e}")
+        else:
+            print("No se encontraron datos de muestras para procesar.")
+
+        # 2. Leer y procesar referencias
         df_referencias = pd.DataFrame()
-        for ref_name, ref_sheet in referencias.items():
-            if ref_sheet:  # Verificar si la referencia no es None
-                try:
-                    df = pd.read_excel(path_referencias, sheet_name=ref_sheet, header=4)
-                    df = df[['nm', '%R']]  # Seleccionar columnas relevantes
-                    df = df.rename(columns={'%R': ref_name})  # Renombrar columna %R
-                    if df_referencias.empty:
-                        df_referencias = df
-                    else:
-                        df_referencias = pd.merge(df_referencias, df, on='nm')
-                except Exception as e:
-                    print(f"Error al leer la hoja '{ref_sheet}': {e}")
+        #referencia_keys = ['zero', 'baseoro', 'basenegro', 'ventana', 'ventanaoro',
+                           #'ventananegro']  # lista de claves de ref
+        referencia_keys = ['zero', 'base', 'ventana']  # lista de claves de ref
+        for ref_key in referencia_keys:
+            if ref_key in archivos_ir and archivos_ir[ref_key]:  # verifica si la clave existe y no esta vacia
+                for ruta_archivo, hoja in archivos_ir[ref_key].items():
+                    try:
+                        df = pd.read_excel(ruta_archivo, sheet_name=hoja, header=4)
+                        df = df[['nm', '%R']]
+                        df = df.rename(columns={'%R': ref_key})  # Usa el nombre de la clave como nombre de columna
+                        if df_referencias.empty:
+                            df_referencias = df.copy()  # usa copy
+                        else:
+                            df_referencias = pd.merge(df_referencias, df, on='nm', how='outer')  # outer join
+                    except Exception as e:
+                        print(f"Error al leer la hoja '{hoja}' del archivo '{ruta_archivo}': {e}")
+            else:
+                print(f"No se encontraron datos de referencia para '{ref_key}'.")
 
-        # Combinar muestras y referencias
+        # 3. Combinar muestras y referencias
         if not df_muestras.empty and not df_referencias.empty:
-            df_final = pd.merge(df_muestras, df_referencias, on='nm')
+            df_final = pd.merge(df_muestras, df_referencias, on='nm', how='outer')  # Usa outer join
         elif not df_muestras.empty:
             df_final = df_muestras
         elif not df_referencias.empty:
             df_final = df_referencias
         else:
-            df_final = pd.DataFrame()  # Dataframe vacio
+            df_final = pd.DataFrame()  # Devuelve un DataFrame vacío si no hay datos
 
-
-        datos_referencia_total = self.leer_datos_referencia(self.col_ir_ref) #llamado como metodo de instancia
+        # 4. Combinar con datos de referencia total
+        datos_referencia_total = self.leer_datos_referencia(
+            self.col_ir_ref)  # Asumiendo que este metodo existe en la clase
 
         if datos_referencia_total is not None and not df_final.empty:
             datos_referencia_total['nm'] = datos_referencia_total['nm'].round().astype(int)
             df_final['nm'] = df_final['nm'].astype(int)
-            df_final = pd.merge(df_final, datos_referencia_total, on='nm', how = 'left')
+            df_final = pd.merge(df_final, datos_referencia_total, on='nm', how='left')
         elif datos_referencia_total is not None:
             df_final = datos_referencia_total
 
+        print("df ftir")
+        print(df_final)
         return df_final
 
     def leer_asc(selfself, path_asc):
@@ -232,8 +237,8 @@ class Muestra:
         if ventana == True:
             ventana_df = self.leer_datos_asc_columnas(self.archivo_uv["ventana"], "ventana")
             data_uv = pd.merge(data_uv, ventana_df, on="nm", how="inner")
-            ventanabase_df = self.leer_datos_asc_columnas(self.archivo_uv["ventanabase"], "ventanabase")
-            data_uv = pd.merge(data_uv, ventanabase_df, on="nm", how="inner")
+            #ventanabase_df = self.leer_datos_asc_columnas(self.archivo_uv["ventanabase"], "ventanabase")
+            #data_uv = pd.merge(data_uv, ventanabase_df, on="nm", how="inner")
 
         # Leer datos de referencia
         data_ref = self.leer_datos_referencia(self.col_uv_ref)
@@ -256,15 +261,21 @@ class Muestra:
         # Calcular la media solo si existen columnas de intensidad
         if intensity_cols:
             df['Iw'] = df[intensity_cols].mean(axis=1)
+
+            refl_list_std = []
+            for intensity in intensity_cols:
+                reflectance = (((df[intensity] -df["zero"]) / (df["base"] - df["zero"])) * df["r_uv"])*df["ASTM"].sum()
+                refl_list_std.append(reflectance)
+            SWR_std = np.std(refl_list_std)
+
         else:
             df['Iw'] = np.nan  # O algún valor por defecto si no hay columnas I
 
         if ventana == False:
-            df["refl"] = (df["Iw"] - df["zero"]) / (df["base"] - df["zero"]) * df["r_uv"]
+            df["refl"] = ((df["Iw"] - df["zero"]) / (df["base"] - df["zero"])) * df["r_uv"]
             df["abs"] = 1 - df["refl"]
         else:
             df["refl_ventana"] = ((df["ventana"]-df["zero"])/(df["base"] - df["zero"]))*df["r_uv"]
-            df["refl_ventanabase"] = (df["ventanabase"] - df["zero"]) / (df["base"] - df["zero"]) * df["r_uv"]
             df["refl_muestras"] =(df["Iw"]-df["zero"])/(df["base"]-df["zero"])*df["r_uv"]
             df["refl"] = ((df["refl_muestras"]-df["refl_ventana"])/
                           (((df["r_trans_uv"]/100)**2)+df["refl_ventana"]*(df["refl_muestras"]-df["refl_ventana"])))
@@ -274,7 +285,7 @@ class Muestra:
 
         df_output = df[["nm", "refl", "abs"]]
 
-        return df_output, SWR, SWA
+        return df_output, SWR, SWA, SWR_std
 
     def medidas_ir(self, df, ventana):
         print("Calculando medidas IR")
@@ -288,13 +299,11 @@ class Muestra:
             df['Iw'] = np.nan  # O algún valor por defecto si no hay columnas I
 
         if ventana == False:
-            df["refl"] = (df["Iw"] - df["zero"]) / (df["baseoro"] - df["zero"]) * df["r_oro"]
+            df["refl"] = (df["Iw"] - df["zero"]) / (df["base"] - df["zero"]) * df["r_ftir"]
             df["abs"] = 1 - df["refl"]
         else:
-            df["refl_ventana"] = ((df["ventana"] - df["zero"]) / (df["baseoro"] - df["zero"])) * df["r_oro"]
-            df["refl_ventanaoro"] = (df["ventanaoro"] - df["zero"]) / (df["baseoro"] - df["zero"]) * df["r_oro"]
-            df["refl_ventananegro"] = (df["ventananegro"] - df["zero"]) / (df["baseoro"] - df["zero"]) * df["r_oro"]
-            df["refl_muestras"] = (df["Iw"] - df["zero"]) / (df["baseoro"] - df["zero"]) * df["r_oro"]
+            df["refl_ventana"] = ((df["ventana"] - df["zero"]) / (df["base"] - df["zero"])) * df["r_ftir"]
+            df["refl_muestras"] = (df["Iw"] - df["zero"]) / (df["base"] - df["zero"]) * df["r_ftir"]
             df["refl"] = ((df["refl_muestras"] - df["refl_ventana"]) /
                           (((df["r_trans_ir"] / 100) ** 2) + df["refl_ventana"] * (df["refl_muestras"] - df["refl_ventana"])))
             df["abs"] = 1 - df["refl"]
@@ -304,15 +313,16 @@ class Muestra:
         return df_output
 
     def combinar_uv_ir(self, data_ir, data_uv):
-        data_ir = data_ir.loc[data_ir["nm"] > 2500]
-        data_ir = data_ir.loc[data_ir["nm"] <= 16000]
 
         if not data_ir.empty and not data_uv.empty:
+            data_ir = data_ir.loc[data_ir["nm"] > 2500]
+            data_ir = data_ir.loc[data_ir["nm"] <= 16000]
             df_concatenado = pd.concat([data_ir, data_uv], ignore_index=True).sort_values(by='nm')
         elif not data_ir.empty:
-            df_concatenado = data_ir
+            df_concatenado = data_ir.sort_values(by='nm')
         else:
-            df_concatenado = data_uv
+            df_concatenado = data_uv.sort_values(by='nm')
+            df_concatenado["µm"] = df_concatenado["nm"]/1000
 
         return df_concatenado
 
@@ -343,4 +353,4 @@ class Muestra:
 
         emitancia = (df["integrando"].sum()) / (df["denominador"].sum())
 
-        return emitancia
+        return emitancia, df
