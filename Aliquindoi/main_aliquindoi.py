@@ -7,7 +7,9 @@ import os # Necesario para la ruta de los archivos
 
 from programas import lectura_datos, plantillas_excel
 from muestra import Muestra
+from Aliquindoi.para_el_usuario.Configuracion.importar_configuracion import Config
 
+config = Config()
 
 try:
     # cuadro de dialogo para meter todas las muestras y automatizar el proceso
@@ -26,11 +28,7 @@ try:
     print("datos basicos: ",datos_basicos)
 
     # declaracion de variables antes de iniciar el programa.
-    archivos_ir =""
-    archivos_zero_base_uv =""
-    archivos_muestra_uv = ""
-    referencias_uv = ""
-    referencias_ir = ""
+    archivos_ir = archivos_zero_base_uv = archivos_muestra_uv = referencias_uv = referencias_ir = path_ftir = path_espectofotometro = ""
 
     # leer datos espectofotómetro/ftir si los hay
     if "FTIR" in datos_basicos["aparatos"]:
@@ -81,7 +79,7 @@ try:
             print("Referencias uv seleccionadas")
             print(referencias_uv)
 
-    nombres_muestras = lectura_datos.nombres_muestras_auto(path_espectofotometro)
+    nombres_muestras = lectura_datos.nombres_muestras_auto(path_espectofotometro, path_ftir)
     print("nombres de muestras: ", nombres_muestras)
     instancias = {} #diccionario para guardar las instancias de las muestras
 
@@ -110,14 +108,12 @@ try:
         #Hacer el proceso de lectura de datos en la muestra
         if datos_basicos["medida"] == "Reflectancia":
             print("Reflectancia")
-            plantillas_excel.copiar_datos_excel(instancias[nombre], wb_destino)
+            plantillas_excel.copiar_datos_excel_config(instancias[nombre], wb_destino, config)
         elif datos_basicos["medida"] == "Absortancia":
             print("Absortancia")
             abs_ref_ir = pd.DataFrame()
             abs_ref_uv = pd.DataFrame()
-            SWR_uv = ""
-            SWA_uv = ""
-            emitancia = ""
+            SWR_uv = SWA_uv = emitancia = ""
             dataframe_ir = pd.DataFrame() #si no hay ftir, se queda vacio
             if "FTIR" in datos_basicos["aparatos"] and archivos_ir:
                 dataframe_ir = instancias[nombre].procesar_datos_tfir()
@@ -126,18 +122,21 @@ try:
                 dataframe_uv = instancias[nombre].leer_datos_UV(ventana_esp)
                 if dataframe_uv.shape[1]>2:
                     abs_ref_uv, SWR_uv, SWA_uv, SWR_std = instancias[nombre].medidas_UV(dataframe_uv, ventana_esp)
+            else:
+                abs_ref_uv= dataframe_uv = pd.DataFrame()
+                SWR_uv = SWA_uv = SWR_std = ""
             data_absorbedor = instancias[nombre].combinar_uv_ir(abs_ref_ir, abs_ref_uv)
             if ("FTIR" in datos_basicos["aparatos"]) and ("Espectrofotómetro" in datos_basicos["aparatos"]) and archivos_ir:
                 emitancia, df_abs = instancias[nombre].emitancia(data_absorbedor)
             else:
                 emitancia = "no calculada" # no calcular la emitancia si falta algún rango
                 df_abs = pd.DataFrame()
-            plantillas_excel.copiar_datos_excel_absorbedores(instancias[nombre], data_absorbedor,wb_destino,
+            plantillas_excel.copiar_datos_excel_absorbedores_config(instancias[nombre], data_absorbedor,wb_destino,
                                                              SWR_uv, SWA_uv, SWR_std, emitancia, instancias[nombre].temperatura,
-                                                             dataframe_ir, dataframe_uv, df_abs)
+                                                             dataframe_ir, dataframe_uv, df_abs, config)
 
         else:
-            plantillas_excel.copiar_datos_excel(instancias[nombre], wb_destino)
+            plantillas_excel.copiar_datos_excel(instancias[nombre], wb_destino, config)
             print("Transmitancia")
 
 except Exception as e:

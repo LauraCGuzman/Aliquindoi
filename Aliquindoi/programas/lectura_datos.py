@@ -271,17 +271,66 @@ def detener_analisis():
         print("Fin del programa")
     return respuesta
 
-def nombres_muestras_auto(paths_espectofotometro):
+def nombres_muestras_auto(paths_espectofotometro, path_ftir):
     nombres_muestras = []
 
-    for path in paths_espectofotometro:
-        archivos = encontrar_archivos_asc_por_nombre("sample_", path)
-        print("archivos encontrados: ", archivos)
-        resultados = [re.search(r'sample_(.*)-[^-]+$', archivo).group(1) for archivo in archivos if
-                      re.search(r'sample_(.*)-[^-]+\.Sample\.asc$', archivo)] #cambiar esto
-        muestras_carpetas = list(set(resultados))
-        nombres_muestras.extend(muestras_carpetas)
-    nombres_muestras_sin_duplicados = list(set(nombres_muestras))
+    if paths_espectofotometro:
+        for path in paths_espectofotometro:
+            archivos = encontrar_archivos_asc_por_nombre("sample_", path)
+            print("archivos encontrados: ", archivos)
+            resultados = [re.search(r'sample_(.*)-[^-]+$', archivo).group(1) for archivo in archivos if
+                          re.search(r'sample_(.*)-[^-]+\.Sample\.asc$', archivo)] #cambiar esto
+            muestras_carpetas = list(set(resultados))
+            nombres_muestras.extend(muestras_carpetas)
+        #nombres_muestras_sin_duplicados = list(set(nombres_muestras))
+        nombres_muestras_sin_duplicados = list(dict.fromkeys(nombres_muestras))
+    else:
+        print("buscando muestras en directorio ftir")
+        # cadena de búsqueda para archivos y prefijo de pestañas
+        cadena_busqueda_archivo = "data"
+        prefijo_pestana = "sample_"
+
+        # path_ftir puede ser una lista/iterable de rutas
+        for directorio_ftir in path_ftir:
+            print(f"Procesando directorio: {directorio_ftir}")
+            directorio_path = Path(str(directorio_ftir))
+
+            # buscar archivos Excel en subcarpetas (.xlsx y .xls)
+            for ext in ("*.xlsx", "*.xls", ".xlsm"):
+                for archivo_path in directorio_path.rglob(ext):
+                    # comprobar que "data" esté en el nombre (case-insensitive)
+                    if cadena_busqueda_archivo.lower() not in archivo_path.name.lower():
+                        continue
+
+                    ruta_completa_excel = str(archivo_path.resolve())
+                    nombre_archivo = archivo_path.name
+                    print("archivo muestras encontrado:", nombre_archivo)
+
+                    try:
+                        xls = pd.ExcelFile(ruta_completa_excel)
+                    except Exception as e:
+                        print(f"No se pudo leer {nombre_archivo}: {e}")
+                        continue
+
+                    # recorrer las pestañas y procesar las que empiecen por "sample_"
+                    for pestana in xls.sheet_names:
+                        if not isinstance(pestana, str):
+                            continue
+                        if not pestana.startswith(prefijo_pestana):
+                            continue
+
+                        cadena_a_procesar = pestana[len(prefijo_pestana):]  # quitar "sample_"
+
+                        # quitar todo lo que venga después del último guion "-", si existe
+                        if "-" in cadena_a_procesar:
+                            cadena_a_procesar = cadena_a_procesar.rsplit("-", 1)[0]
+
+                        cadena_a_procesar = cadena_a_procesar.strip()
+                        if cadena_a_procesar:
+                            nombres_muestras.append(cadena_a_procesar)
+
+        # obtener lista sin duplicados (opcional: ordenada)
+        nombres_muestras_sin_duplicados = list(dict.fromkeys(nombres_muestras))  # mantiene orden de aparición
 
     return sorted(nombres_muestras_sin_duplicados)
 def nombres_muestras_preguntar():

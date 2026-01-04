@@ -1,4 +1,3 @@
-from unittest.mock import inplace
 
 import pandas as pd
 import numpy as np
@@ -25,14 +24,18 @@ class Muestra:
         self.fechamedida = datos_basicos["fecha_medida"]["dd/mm/yyyy"]
         self.id_medida = datos_basicos["fecha_medida"]["yyyyMMdd"]
         self.path_output = excel_path_output
-        try:
+        if file_paths_muestras_uv:
+            try:
+                self.archivo_uv = {
+                    "path_muestras": file_paths_muestras_uv, "zero": file_path_zero_base_uv["ZeroLine"], "base": file_path_zero_base_uv["BaseLine"],
+                    "ventana": file_path_zero_base_uv["ventana"][0]}
+            except:
+                self.archivo_uv = {
+                    "path_muestras": file_paths_muestras_uv, "zero": file_path_zero_base_uv["ZeroLine"],
+                    "base": file_path_zero_base_uv["BaseLine"], "ventana": file_path_zero_base_uv["ventana"]}
+        else:
             self.archivo_uv = {
-                "path_muestras": file_paths_muestras_uv, "zero": file_path_zero_base_uv["ZeroLine"], "base": file_path_zero_base_uv["BaseLine"],
-                "ventana": file_path_zero_base_uv["ventana"][0]}
-        except:
-            self.archivo_uv = {
-                "path_muestras": file_paths_muestras_uv, "zero": file_path_zero_base_uv["ZeroLine"],
-                "base": file_path_zero_base_uv["BaseLine"], "ventana": file_path_zero_base_uv["ventana"]}
+                "path_muestras": "", "zero": "", "base": "", "ventana": ""}
 
     def leer_archivo_referencias(self):
         directorio_script = os.path.dirname(os.path.realpath(__file__))
@@ -319,7 +322,10 @@ class Muestra:
             data_ir = data_ir.loc[data_ir["nm"] <= 16000]
             df_concatenado = pd.concat([data_ir, data_uv], ignore_index=True).sort_values(by='nm')
         elif not data_ir.empty:
+            data_ir = data_ir.loc[data_ir["nm"] > 2500]
+            data_ir = data_ir.loc[data_ir["nm"] <= 16000]
             df_concatenado = data_ir.sort_values(by='nm')
+            df_concatenado["µm"] = df_concatenado["nm"]/1000
         else:
             df_concatenado = data_uv.sort_values(by='nm')
             df_concatenado["µm"] = df_concatenado["nm"]/1000
