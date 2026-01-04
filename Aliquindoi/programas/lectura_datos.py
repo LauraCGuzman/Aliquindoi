@@ -321,7 +321,7 @@ def nombres_muestras_auto(paths_espectofotometro, path_ftir):
 
                         cadena_a_procesar = pestana[len(prefijo_pestana):]  # quitar "sample_"
 
-                        # quitar todo lo que venga después del último guion "-", si existe
+
                         if "-" in cadena_a_procesar:
                             cadena_a_procesar = cadena_a_procesar.rsplit("-", 1)[0]
 
