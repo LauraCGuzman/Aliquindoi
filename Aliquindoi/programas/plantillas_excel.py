@@ -58,6 +58,14 @@ def elegir_plantilla_config(Muestra, config):
 def copiar_datos_excel(Muestra, wb_destino, config):
     """
     Abre la plantilla, modifica la hoja y la guarda en el libro de trabajo de destino.
+
+    Contract:
+        Accesses specific attributes of the `Muestra` object:
+        - Metadata: .nombre, .fabricante, .proyecto, .fechamedida, .id_medida, .test, .hours, .meses
+        - Type: .tipo_medida
+        - Data Paths: .archivo_uv["path_muestras"], .archivo_uv["zero"], .archivo_uv["base"]
+        - Data Values: .col_uv_ref["r_uv"]
+        - Output: .path_output
     """
 
     plantilla_path, celdas = elegir_plantilla_config(Muestra, config)
@@ -187,6 +195,17 @@ def copiar_datos_excel(Muestra, wb_destino, config):
 
 def copiar_datos_excel_absorbedores(Muestra, df, wb_destino, SWR_uv, SWA_uv, SWR_std, emitancia, temperatura,
                                     dataframe_ir, dataframe_uv, df_abs, config):
+    """
+    Exporta datos de absorbedores (UV + IR) a la plantilla Excel.
+
+    Contract:
+        Accesses specific attributes of the `Muestra` object:
+        - Metadata: .nombre, .fabricante, .proyecto, .fechamedida, .id_medida, .test, .hours, .meses
+        - Type: .tipo_medida
+        - Data Values: .col_uv_ref["r_uv"], .col_ir_ref["r_ftir"]
+        - Config strings: .tipo ("FTIR", "Espectrofotómetro") to determine active ranges.
+        - Output: .path_output
+    """
 
     plantilla_path, celdas = elegir_plantilla_config(Muestra, config)
     if not plantilla_path:

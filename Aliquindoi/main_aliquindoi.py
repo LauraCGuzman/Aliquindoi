@@ -9,9 +9,8 @@ from Aliquindoi.programas import lectura_datos, plantillas_excel
 from Aliquindoi.muestra import Muestra
 from user_templates.Configuracion.importar_configuracion import Config
 
-config = Config()
-
-try:
+def setup_application():
+    """Configura el archivo Excel de salida y la aplicación."""
     # cuadro de dialogo para meter todas las muestras y automatizar el proceso
     excel_path_output = lectura_datos.preguntar_output_excel()
     print(excel_path_output)
@@ -23,131 +22,172 @@ try:
     app = wb_destino.app  # Obtener la aplicación de Excel
     app.screen_updating = False  # Evitar parpadeos en pantalla
     app.calculation = 'manual'  # Desactivar el cálculo automático
+    
+    return excel_path_output, wb_destino, app
 
-    datos_basicos = lectura_datos.pregunta_tipos_test()
-    print("datos basicos: ",datos_basicos)
+def configure_references_ftir(datos_basicos):
+    """Configura las referencias y rutas para FTIR si está seleccionado."""
+    path_ftir = ""
+    ventana_ftir = False
+    referencias_ir = ""
 
-    # declaracion de variables antes de iniciar el programa.
-    # declaracion de variables antes de iniciar el programa.
-    archivos_ir = referencias_uv = referencias_ir = path_ftir = path_espectofotometro = ""
-    archivos_zero_base_uv = archivos_muestra_uv = ""
-
-    # leer datos espectofotómetro/ftir si los hay
     if "FTIR" in datos_basicos["aparatos"]:
         path_ftir = lectura_datos.carpeta_con_archivos("Selecciona la carpeta ftir con las muestras y las referencias")
         print("path ftir seleccionada: ", path_ftir)
+        
         if datos_basicos["aparatos"]["FTIR"] == "Con ventana":
             ventana_ftir = True
-        else:
-            ventana_ftir = False
-
+        
         # elegir pestañas de referencias
-        if "FTIR" in datos_basicos["aparatos"]:
-            referencias_ir = {"r_ftir": "", "r_trans_ir": ""}
-            r_ftir = lectura_datos.elegir_columnas_referencia("absorbedores_refl", "Selecciona referencia ftir")
-            referencias_ir["r_ftir"] = r_ftir
-            if ventana_ftir == True:
-                r_trans_ir = lectura_datos.elegir_columnas_referencia("T_ventana_ir",
-                                                                      "Selecciona transmitancia de la ventana")
-                referencias_ir["r_trans_ir"] = r_trans_ir
-            print("referencias ir seleccionadas: ", referencias_ir)
+        referencias_ir = {"r_ftir": "", "r_trans_ir": ""}
+        r_ftir = lectura_datos.elegir_columnas_referencia("absorbedores_refl", "Selecciona referencia ftir")
+        referencias_ir["r_ftir"] = r_ftir
+        
+        if ventana_ftir:
+            r_trans_ir = lectura_datos.elegir_columnas_referencia("T_ventana_ir",
+                                                                  "Selecciona transmitancia de la ventana")
+            referencias_ir["r_trans_ir"] = r_trans_ir
+        print("referencias ir seleccionadas: ", referencias_ir)
+            
+    return path_ftir, ventana_ftir, referencias_ir
 
+def configure_references_uv(datos_basicos):
+    """Configura las referencias y rutas para Espectrofotómetro si está seleccionado."""
+    path_espectofotometro = ""
+    ventana_esp = False
+    referencias_uv = ""
 
     if "Espectrofotómetro" in datos_basicos["aparatos"]:
         path_espectofotometro = lectura_datos.carpeta_con_archivos("Selecciona la carpeta de datos del espectrofotómetro")
+        
         if datos_basicos["aparatos"]["Espectrofotómetro"] == "Con ventana":
             ventana_esp = True
+            
+        referencias_uv = {"r_uv": "", "r_trans_uv": ""}
+        
+        if datos_basicos["medida"] == "Absortancia":
+            r_uv = lectura_datos.elegir_columnas_referencia("absorbedores_abs", "Selecciona referencia base UV")
+        elif datos_basicos["medida"] == "Reflectancia":
+            r_uv = lectura_datos.elegir_columnas_referencia("reflectores", "Selecciona referencia base UV")
+        elif (datos_basicos["medida"] == "Transmitancia CSP"):
+            r_uv = lectura_datos.elegir_columnas_referencia("ref_trans_csp", "Selecciona referencia base UV")
         else:
-            ventana_esp = False
+            r_uv = ""
+        referencias_uv["r_uv"] = r_uv
 
-        if "Espectrofotómetro" in datos_basicos["aparatos"]:
-            referencias_uv = {"r_uv": "", "r_trans_uv": ""}
-            if datos_basicos["medida"] == "Absortancia":
-                r_uv = lectura_datos.elegir_columnas_referencia("absorbedores_abs", "Selecciona referencia base UV")
-            elif datos_basicos["medida"] == "Reflectancia":
-                r_uv = lectura_datos.elegir_columnas_referencia("reflectores", "Selecciona referencia base UV")
-            elif (datos_basicos["medida"] == "Transmitancia CSP"):
-                r_uv = lectura_datos.elegir_columnas_referencia("ref_trans_csp", "Selecciona referencia base UV")
-            else:
-                r_uv = ""
-            referencias_uv["r_uv"] = r_uv
+        if (datos_basicos["medida"] == "Absortancia") | (datos_basicos["medida"] == "Reflectancia"):
+            if ventana_esp:
+                print("Ventana en UV seleccionada")
+                r_trans_uv = lectura_datos.elegir_columnas_referencia("T_ventana_uv",
+                                                                      "Selecciona transmitancia de la ventana")
+                referencias_uv["r_trans_uv"] = r_trans_uv
+        print("Referencias uv seleccionadas")
+        print(referencias_uv)
+        
+    return path_espectofotometro, ventana_esp, referencias_uv
 
-            if (datos_basicos["medida"] == "Absortancia") | (datos_basicos["medida"] == "Reflectancia"):
-                if ventana_esp == True:
-                    print("Ventana en UV seleccionada")
-                    r_trans_uv = lectura_datos.elegir_columnas_referencia("T_ventana_uv",
-                                                                          "Selecciona transmitancia de la ventana")
-                    referencias_uv["r_trans_uv"] = r_trans_uv
-            print("Referencias uv seleccionadas")
-            print(referencias_uv)
+# Main Execution Flow
+config = Config()
+wb_destino = None
+app = None
 
+try:
+    # 1. Setup Application
+    excel_path_output, wb_destino, app = setup_application()
+    
+    # 2. Get User Input
+    datos_basicos = lectura_datos.pregunta_tipos_test()
+    print("datos basicos: ", datos_basicos)
+
+    # 3. Configure References
+    path_ftir, ventana_ftir, referencias_ir = configure_references_ftir(datos_basicos)
+    path_espectofotometro, ventana_esp, referencias_uv = configure_references_uv(datos_basicos)
+
+    # 4. Discover Samples
     nombres_muestras = lectura_datos.nombres_muestras_auto(path_espectofotometro, path_ftir)
     print("nombres de muestras: ", nombres_muestras)
-    instancias = {} #diccionario para guardar las instancias de las muestras
+    instancias = {} 
 
+    # 5. Process Loops (Explicit Orchestration)
     for nombre in nombres_muestras:
+        # Initialize loop-specific variables
+        archivos_ir = ""
+        archivos_zero_base_uv = ""
+        archivos_muestra_uv = ""
+        
         nombre_procesado = lectura_datos.procesar_cadena(nombre)
         print(f"Analizando muestra {nombre}")
         print(f"Nombre de la muestra procesado: {nombre_procesado}")
 
+        # Resolve files based on apparatus
         if "FTIR" in datos_basicos["aparatos"]:
-            # leer ftir si hay: path de reforo, zero, medidas (+refnegro, ventana, ventanaoro, ventananegro)
-            archivos_ir = lectura_datos.ftir_medidas_auto(path_ftir, nombre_procesado, ventana_ftir)  # cambiar esta función
+            archivos_ir = lectura_datos.ftir_medidas_auto(path_ftir, nombre_procesado, ventana_ftir)
 
         if "Espectrofotómetro" in datos_basicos["aparatos"]:
-            # leer carpeta de espectofotómetro si hay: path zero, base, muestras, (ventana y ventana base)
             archivos_zero_base_uv, archivos_muestra_uv = lectura_datos.espectro_medidas_zero_base_auto(nombre,
                                                                                                        path_espectofotometro,
                                                                                                        datos_basicos)
             print("archivos zero y base: ", archivos_zero_base_uv)
             print("archivos muestra: ", archivos_muestra_uv)
 
-        #meter datos en la muestra
+        # Create Domain Object
         print("Creando muestra")
         instancias[nombre] = Muestra(nombre, archivos_ir, archivos_zero_base_uv, archivos_muestra_uv, referencias_ir, referencias_uv, datos_basicos,
                                      excel_path_output)
         print("Muestra guardada: ", instancias[nombre])
-        #Hacer el proceso de lectura de datos en la muestra
+        
+        # Calculate and Report based on Measurement Type
         if datos_basicos["medida"] == "Reflectancia":
             print("Reflectancia")
             plantillas_excel.copiar_datos_excel(instancias[nombre], wb_destino, config)
+            
         elif datos_basicos["medida"] == "Absortancia":
             print("Absortancia")
             abs_ref_ir = pd.DataFrame()
             abs_ref_uv = pd.DataFrame()
-            SWR_uv = SWA_uv = emitancia = ""
-            dataframe_ir = pd.DataFrame() #si no hay ftir, se queda vacio
+            SWR_uv = SWA_uv = SWR_std = emitancia = ""
+            dataframe_ir = pd.DataFrame() 
+             dataframe_uv = pd.DataFrame() # Add explicit init for safety
+             
             if "FTIR" in datos_basicos["aparatos"] and archivos_ir:
                 dataframe_ir = instancias[nombre].procesar_datos_tfir()
                 abs_ref_ir = instancias[nombre].medidas_ir(dataframe_ir, ventana_ftir)
+                
             if "Espectrofotómetro" in datos_basicos["aparatos"]:
                 dataframe_uv = instancias[nombre].leer_datos_UV(ventana_esp)
                 if dataframe_uv.shape[1]>2:
                     abs_ref_uv, SWR_uv, SWA_uv, SWR_std = instancias[nombre].medidas_UV(dataframe_uv, ventana_esp)
             else:
-                abs_ref_uv= dataframe_uv = pd.DataFrame()
+                 # Logic from original else block
+                abs_ref_uv = dataframe_uv = pd.DataFrame()
                 SWR_uv = SWA_uv = SWR_std = ""
+                
             data_absorbedor = instancias[nombre].combinar_uv_ir(abs_ref_ir, abs_ref_uv)
+            
             if ("FTIR" in datos_basicos["aparatos"]) and ("Espectrofotómetro" in datos_basicos["aparatos"]) and archivos_ir:
                 emitancia, df_abs = instancias[nombre].emitancia(data_absorbedor)
             else:
-                emitancia = "no calculada" # no calcular la emitancia si falta algún rango
+                emitancia = "no calculada"
                 df_abs = pd.DataFrame()
-            plantillas_excel.copiar_datos_excel_absorbedores(instancias[nombre], data_absorbedor,wb_destino,
+                
+            plantillas_excel.copiar_datos_excel_absorbedores(instancias[nombre], data_absorbedor, wb_destino,
                                                              SWR_uv, SWA_uv, SWR_std, emitancia, instancias[nombre].temperatura,
                                                              dataframe_ir, dataframe_uv, df_abs, config)
 
-        else:
+        else: # Transmitancia CSP or PV
             plantillas_excel.copiar_datos_excel(instancias[nombre], wb_destino, config)
             print("Transmitancia")
 
 except Exception as e:
-    # --- NUEVA LÓGICA DE REGISTRO DE ERRORES ---
+    # Error Handling Legacy Logic
     error_msg = traceback.format_exc()
-    log_filename = excel_path_output.replace("xlsx", "txt")
+    if 'excel_path_output' in locals() and excel_path_output:
+        log_filename = excel_path_output.replace("xlsx", "txt")
+    else:
+        log_filename = "error_log.txt"
+        
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Escribir el error en el archivo de log
     try:
         with open(log_filename, "a", encoding="utf-8") as f:
             f.write("=" * 80 + "\n")
@@ -156,7 +196,6 @@ except Exception as e:
             f.write(error_msg)
             f.write("\n" + "=" * 80 + "\n\n")
 
-        # Mensaje para el usuario en la consola
         print("\n" * 2)
         print("******************************************************************")
         print("!! ERROR CRÍTICO !!")
@@ -167,14 +206,11 @@ except Exception as e:
         print("\n")
 
     except IOError:
-        # Esta excepción es la que el usuario está viendo el error de sintaxis.
-        # Se ha reescrito para asegurar que esté indentada correctamente con respecto al 'try'
-        print(
-            f"\n[ERROR FATAL] Ocurrió un error inesperado, pero NO se pudo escribir en el archivo de log '{log_filename}'.")
+        print(f"\n[ERROR FATAL] Ocurrió un error inesperado, pero NO se pudo escribir en el archivo de log '{log_filename}'.")
         print(f"Detalle del error: {e}")
 
 finally:
-    # Intentar restaurar la configuración de Excel y cerrar el libro solo si se abrieron
+    # Cleanup
     if app is not None:
         try:
             app.screen_updating = True
@@ -187,6 +223,4 @@ finally:
             wb_destino.save()
             wb_destino.close()
         except Exception as clean_up_e:
-            # Esto puede ocurrir si xlwings pierde la conexión al libro
-            print(
-                f"ADVERTENCIA: No se pudo guardar/cerrar el libro de destino. Por favor, cierre Excel manualmente. {clean_up_e}")
+            print(f"ADVERTENCIA: No se pudo guardar/cerrar el libro de destino. Por favor, cierre Excel manualmente. {clean_up_e}")
