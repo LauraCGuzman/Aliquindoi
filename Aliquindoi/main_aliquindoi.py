@@ -5,9 +5,9 @@ import traceback
 from datetime import datetime
 import os # Necesario para la ruta de los archivos
 
-from programas import lectura_datos, plantillas_excel
-from muestra import Muestra
-from Aliquindoi.para_el_usuario.Configuracion.importar_configuracion import Config
+from Aliquindoi.programas import lectura_datos, plantillas_excel
+from Aliquindoi.muestra import Muestra
+from user_templates.Configuracion.importar_configuracion import Config
 
 config = Config()
 
@@ -108,7 +108,7 @@ try:
         #Hacer el proceso de lectura de datos en la muestra
         if datos_basicos["medida"] == "Reflectancia":
             print("Reflectancia")
-            plantillas_excel.copiar_datos_excel_config(instancias[nombre], wb_destino, config)
+            plantillas_excel.copiar_datos_excel(instancias[nombre], wb_destino, config)
         elif datos_basicos["medida"] == "Absortancia":
             print("Absortancia")
             abs_ref_ir = pd.DataFrame()
@@ -131,7 +131,7 @@ try:
             else:
                 emitancia = "no calculada" # no calcular la emitancia si falta algún rango
                 df_abs = pd.DataFrame()
-            plantillas_excel.copiar_datos_excel_absorbedores_config(instancias[nombre], data_absorbedor,wb_destino,
+            plantillas_excel.copiar_datos_excel_absorbedores(instancias[nombre], data_absorbedor,wb_destino,
                                                              SWR_uv, SWA_uv, SWR_std, emitancia, instancias[nombre].temperatura,
                                                              dataframe_ir, dataframe_uv, df_abs, config)
 

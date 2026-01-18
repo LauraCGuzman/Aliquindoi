@@ -41,7 +41,7 @@ class Muestra:
         directorio_script = os.path.dirname(os.path.realpath(__file__))
         print(directorio_script)
         archivo_referencias = os.path.normpath(
-            os.path.join(directorio_script, "para_el_usuario/references.xlsx"))
+            os.path.join(directorio_script, "../user_templates/references.xlsx"))
         print(archivo_referencias)
         return archivo_referencias
 

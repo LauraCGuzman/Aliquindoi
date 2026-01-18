@@ -1,6 +1,7 @@
 import xlwings as xw
 import os
 import string
+import ast
 from datetime import datetime
 from openpyxl.utils import get_column_letter
 from openpyxl.utils.cell import coordinate_from_string
@@ -49,273 +50,53 @@ def leer_asc_para_exportar_excel(path_asc):
 
     return data
 
-def elegir_plantilla(Muestra):
-
-    def elegir_plantilla_segun_nm(Muestra):
-        if Muestra.tipo_medida == "Transmitancia CSP":
-            path = Muestra.archivo_uv["path_muestras"][0] # no hay base o zero, hay que fijarse en el primer archivo muestra
-        else:
-            path = Muestra.archivo_uv["zero"] #para el resto sí hay zero.
-        with open(path, 'r') as file:
-            lines = file.readlines()
-
-        linea = lines[-1]
-        split_line = linea.split()
-        medida_nm = split_line[0].replace(",", ".")
-        medida_nm = float(medida_nm)
-        medida_nm = int(medida_nm)
-
-        return medida_nm
-
-    directorio_script = os.path.dirname(os.path.realpath(__file__))
-
-    if Muestra.tipo_medida == "Reflectancia":
-        medida_nm = elegir_plantilla_segun_nm(Muestra)
-        if medida_nm == 320:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, "../para_el_usuario/202501_refl_320.xls"))
-        elif medida_nm == 300:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, "../para_el_usuario/202501_refl_300.xls"))
-        else:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, "../para_el_usuario/202501_refl_280.xls"))
-        print("Plantilla elegida: ", excel_path)
-    elif Muestra.tipo_medida == "Transmitancia CSP":
-        medida_nm = elegir_plantilla_segun_nm(Muestra)
-        if medida_nm == 320:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, "../para_el_usuario/202501_transcsp_320.xls"))
-        elif medida_nm == 300:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, "../para_el_usuario/202501_transcsp_300.xls"))
-        else:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, "../para_el_usuario/202501_transcsp_280.xls"))
-        print("Plantilla elegida: ", excel_path)
-    elif Muestra.tipo_medida == "Transmitancia PV":
-        excel_path = os.path.normpath(
-            os.path.join(directorio_script, "../para_el_usuario/2025_transpv_320nm.xls"))
-    elif Muestra.tipo_medida == "Absortancia":
-        medida_nm = elegir_plantilla_segun_nm(Muestra)
-        if medida_nm == 320:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, "../para_el_usuario/abs_plantilla_320.xlsx"))
-        elif medida_nm == 300:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, "../para_el_usuario/abs_plantilla_300.xlsx"))
-        else:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, "../para_el_usuario/abs_plantilla_280.xlsx"))
-        print("Plantilla elegida: ", excel_path)
-    return excel_path
-
 def elegir_plantilla_config(Muestra, config):
 
-    def elegir_plantilla_segun_nm(Muestra):
-        try:
-            if Muestra.tipo_medida == "Transmitancia CSP":
-                path = Muestra.archivo_uv["path_muestras"][0] # no hay base o zero, hay que fijarse en el primer archivo muestra
-            else:
-                path = Muestra.archivo_uv["zero"] #para el resto sí hay zero.
-            with open(path, 'r') as file:
-                lines = file.readlines()
-
-            linea = lines[-1]
-            split_line = linea.split()
-            medida_nm = split_line[0].replace(",", ".")
-            medida_nm = float(medida_nm)
-            medida_nm = int(medida_nm)
-        except:
-            print("Error determinando longitud de onda para elegir plantilla")
-            print("se establece 280 nm")
-            medida_nm = int(280)
-
-
-        return medida_nm
-
     directorio_script = os.path.dirname(os.path.realpath(__file__))
 
+    # Select key based on measurement type
     if Muestra.tipo_medida == "Reflectancia":
-        medida_nm = elegir_plantilla_segun_nm(Muestra)
-        if medida_nm == 320:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, str(config.path_plantillas["refl_320"])))
-            celdas = config.celdas_plantillas["refl_320"]
-        elif medida_nm == 300:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, str(config.path_plantillas["refl_300"])))
-            celdas = config.celdas_plantillas["refl_300"]
-        else:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, str(config.path_plantillas["refl_280"])))
-            celdas = config.celdas_plantillas["refl_280"]
+        key = "reflectance"
     elif Muestra.tipo_medida == "Transmitancia CSP":
-        medida_nm = elegir_plantilla_segun_nm(Muestra)
-        if medida_nm == 320:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, str(config.path_plantillas["trans_csp_320"])))
-            celdas = config.celdas_plantillas["trans_csp_320"]
-        elif medida_nm == 300:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, str(config.path_plantillas["trans_csp_300"])))
-            celdas = config.celdas_plantillas["trans_csp_300"]
-        else:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, str(config.path_plantillas["trans_csp_280"])))
-            celdas = config.celdas_plantillas["trans_csp_280"]
-
+        key = "transmittance_csp"
     elif Muestra.tipo_medida == "Transmitancia PV":
-        excel_path = os.path.normpath(
-            os.path.join(directorio_script, str(config.path_plantillas["trans_pv"])))
-        celdas = config.celdas_plantillas["trans_pv"]
+        key = "transmittance_pv"
     elif Muestra.tipo_medida == "Absortancia":
-        medida_nm = elegir_plantilla_segun_nm(Muestra)
-        if medida_nm == 320:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, str(config.path_plantillas["abs_320"])))
-            celdas = config.celdas_plantillas["abs_320"]
-        elif medida_nm == 300:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, str(config.path_plantillas["abs_300"])))
-            celdas = config.celdas_plantillas["abs_300"]
-        else:
-            excel_path = os.path.normpath(
-                os.path.join(directorio_script, str(config.path_plantillas["abs_280"])))
-            celdas = config.celdas_plantillas["abs_280"]
+        key = "absorbance"
+    else:
+        print(f"⚠️ Tipo de medida no reconocido: {Muestra.tipo_medida}. Usando Reflectancia por defecto.")
+        key = "reflectance"
+
+    plantilla_rel_path = config.path_plantillas.get(key)
+    if not plantilla_rel_path:
+        print(f"❌ No se encontró configuración para '{key}' en config.ini")
+        return None, {}
+
+    excel_path = os.path.normpath(
+        os.path.join(directorio_script, str(plantilla_rel_path)))
+    celdas = config.celdas_plantillas.get(key, {})
+
     print("Plantilla elegida: ", excel_path)
     return excel_path, celdas
 
 def copiar_datos_excel(Muestra, wb_destino, config):
     """
-    Abre la plantilla, modifica la hoja "refl5" y la guarda en el libro de trabajo de destino.
-    """
-
-    plantilla_path = elegir_plantilla(Muestra)
-
-    print(f" Intentando abrir plantilla: {plantilla_path}")
-    print(f" Intentando abrir libro de destino: {Muestra.path_output}")
-    print("Hecho")
-
-    n_muestras = len(Muestra.archivo_uv["path_muestras"])
-
-    try:
-        wb_plantilla = xw.Book(plantilla_path)  # Plantilla
-
-        app = wb_destino.app  # Obtener la aplicación de Excel
-        app.display_alerts = False  # Desactivar alertas
-
-
-        # Diccionario con las celdas de inicio
-        if Muestra.tipo_medida == "Reflectancia":
-            measurement_cells = {1: "Q628", 2: "R628", 3: "S628", 4:"T628", 5: "U628", 6: "V628", 7:"W628", 8:"X628", 9:"Y628"}
-            zero_line_cell = "M628"
-            baseline_cell = "N628"
-            sheet_plantilla = wb_plantilla.sheets['refl5']  # Hoja de la plantilla
-
-        elif Muestra.tipo_medida == "Transmitancia CSP":
-            measurement_cells = {1: "T628", 2: "U628", 3: "V628", 4: "W628", 5: "X628", 6: "Y628", 7: "Z628", 8: "AA628",
-                                 9: "AB628"}
-            zero_line_cell = "M628"
-            baseline_cell = "N628"
-            sheet_plantilla = wb_plantilla.sheets['trans']  # Hoja de la plantilla
-
-        elif Muestra.tipo_medida == "Transmitancia PV":
-            measurement_cells = {1: "Q628", 2: "R628", 3: "S628", 4: "T628", 5: "U628", 6: "V628", 7: "W628", 8: "X628",
-                                 9: "Y628"}
-            zero_line_cell = "M628"
-            baseline_cell = "N628"
-            sheet_plantilla = wb_plantilla.sheets['trans5_PV_5nm']  # Hoja de la plantilla
-
-        print("Determinadas celdas para copiar datos")
-
-        def col_letter_to_index(col_letter):
-            """ Convierte una letra de columna (A, B, ..., Z, AA, AB, ...) a un índice numérico """
-            col_letter = col_letter.upper()
-            col_index = 0
-            for char in col_letter:
-                col_index = col_index * 26 + (string.ascii_uppercase.index(char) + 1)
-            return col_index
-
-        def insertar_datos_en_columna(file_path, start_cell, sheet):
-            """ Lee un archivo .asc y copia los valores en una columna en Excel. """
-            data = leer_asc_para_exportar_excel(file_path)
-            if not data:
-                print(f"⚠️ No se encontraron datos en {file_path}")
-                return
-
-            start_row = int(start_cell[1:])  # Extraer el número de fila
-            col_letter = start_cell[0]  # Extraer la letra de la columna
-            col_index = col_letter_to_index(col_letter)  # Convertir a índice numérico
-
-            # Convertir los datos en una lista de listas para escritura en bloque
-            data_array = [[value] for value in data]
-
-            # Escribir los datos de una sola vez en Excel
-            sheet.range((start_row, col_index)).value = data_array
-
-            print(f"✅ Copiados datos de {file_path} en columna {col_letter}{start_row}")
-
-        # Copiar datos de los archivos de medición
-        for i, file in enumerate(Muestra.archivo_uv["path_muestras"], start=1):
-            if i > 9:
-                print(f"⚠️ Más de 9 mediciones. Ignorando {file}")
-                break
-            insertar_datos_en_columna(file, measurement_cells[i], sheet_plantilla)
-
-        # Copiar datos de Zero Line y Base Line
-        if Muestra.tipo_medida == "Reflectancia":
-            insertar_datos_en_columna(Muestra.archivo_uv["zero"], zero_line_cell, sheet_plantilla)
-            insertar_datos_en_columna(Muestra.archivo_uv["base"], baseline_cell, sheet_plantilla)
-
-        #Eliminar contenido de celdas en función de número de medidas por muestra
-        j = 0
-        for i in range(n_muestras, 9):
-            # La celda es C(67 - (índice de desfase))
-            celda = f"C{67 - j}"
-
-            sheet_plantilla[celda].value = ""
-            print("eliminando celda ", celda)
-            j = j+1
-
-        #introducir datos
-        sheet_plantilla["C3"].value = Muestra.nombre + " - " + Muestra.fabricante
-        sheet_plantilla["C5"].value = Muestra.nombre
-        sheet_plantilla["C6"].value = Muestra.nombre
-        sheet_plantilla["C7"].value = Muestra.fabricante
-        sheet_plantilla["C10"].value = Muestra.proyecto
-        sheet_plantilla["C11"].value = datetime.strptime(Muestra.fechamedida, "%d/%m/%Y")
-        sheet_plantilla["C12"].value = Muestra.id_medida
-        sheet_plantilla["C15"].value = Muestra.test
-        if Muestra.tipo_medida == "Reflectancia":
-            sheet_plantilla["C21"].value = Muestra.hours
-            sheet_plantilla["C22"].value = Muestra.meses
-            sheet_plantilla["C23"].value = str(Muestra.col_uv_ref["r_uv"])
-        else:
-            sheet_plantilla["C21"].value = Muestra.meses
-
-
-        # Copiar la hoja sin renombrarla
-        new_sheet = sheet_plantilla.copy(after=wb_destino.sheets[wb_destino.sheets.count - 1])
-
-        # Renombrar la hoja copiada
-        sheet_name  = Muestra.nombre + "_" + Muestra.id_medida
-        new_sheet.name = sheet_name[:31]
-
-        wb_plantilla.close()
-
-        print(f" Archivo guardado en: {Muestra.path_output}")
-
-    except Exception as e:
-        print(f"❌ Error copiando datos en Excel: {e}")
-
-def copiar_datos_excel_config(Muestra, wb_destino, config):
-    """
-    Abre la plantilla, modifica la hoja "refl5" y la guarda en el libro de trabajo de destino.
+    Abre la plantilla, modifica la hoja y la guarda en el libro de trabajo de destino.
     """
 
     plantilla_path, celdas = elegir_plantilla_config(Muestra, config)
 
+    if not plantilla_path:
+        print("❌ No se pudo determinar la plantilla.")
+        return
+
+    # Parse measurement_cells safely if it is a string (from configparser)
+    if "measurement_cells" in celdas and isinstance(celdas["measurement_cells"], str):
+        try:
+             celdas["measurement_cells"] = ast.literal_eval(celdas["measurement_cells"])
+        except Exception as e:
+             print(f"Error parsing measurement_cells: {e}")
+
     print(f" Intentando abrir plantilla: {plantilla_path}")
     print(f" Intentando abrir libro de destino: {Muestra.path_output}")
     print("Hecho")
@@ -361,37 +142,43 @@ def copiar_datos_excel_config(Muestra, wb_destino, config):
             if i > 9:
                 print(f"⚠️ Más de 9 mediciones. Ignorando {file}")
                 break
-            insertar_datos_en_columna(file, celdas["measurement_cells"][i], celdas["hoja_plantilla"])
+            if "measurement_cells" in celdas and i in celdas["measurement_cells"]:
+                 insertar_datos_en_columna(file, celdas["measurement_cells"][i], wb_plantilla.sheets[str(celdas["hoja_plantilla"])])
+            else:
+                 print(f"⚠️ No hay configuración de celda para la medición {i}")
 
         # Copiar datos de Zero Line y Base Line
         if Muestra.tipo_medida == "Reflectancia":
-            insertar_datos_en_columna(Muestra.archivo_uv["zero"], celdas["zero_cell"], celdas["hoja_plantilla"])
-            insertar_datos_en_columna(Muestra.archivo_uv["base"], celdas["base_cell"], celdas["hoja_plantilla"])
+            insertar_datos_en_columna(Muestra.archivo_uv["zero"], str(celdas["zero_cell"]), wb_plantilla.sheets[str(celdas["hoja_plantilla"])])
+            insertar_datos_en_columna(Muestra.archivo_uv["base"], str(celdas["base_cell"]), wb_plantilla.sheets[str(celdas["hoja_plantilla"])])
 
         #Eliminar contenido de celdas en función de número de medidas por muestra
         # 1. Recuperas el valor "C67" de tu variable
-        ref_config = celdas["ultima_celda_medidas_borrar"]
+        if "ultima_celda_medidas_borrar" in celdas:
+            ref_config = celdas["ultima_celda_medidas_borrar"]
 
-        # 2. Separas la columna ('C') y la fila (67)
-        # coordinate_from_string devuelve una tupla: ('C', 67)
-        columna, fila_base = coordinate_from_string(ref_config)
+            # 2. Separas la columna ('C') y la fila (67)
+            columna, fila_base = coordinate_from_string(ref_config)
 
-        sheet_plantilla = wb_plantilla.sheets[celdas["hoja_plantilla"]]
+            sheet_plantilla = wb_plantilla.sheets[str(celdas["hoja_plantilla"])]
 
-        j = 0
+            j = 0
 
-        for i in range(n_muestras, int(celdas["numero_max_medidas"])):
-            # 3. Calculamos la nueva fila usando la base extraída del config
-            nueva_fila = fila_base - j
+            max_medidas = int(celdas.get("numero_max_medidas", 9))
+            for i in range(n_muestras, max_medidas):
+                # 3. Calculamos la nueva fila usando la base extraída del config
+                nueva_fila = fila_base - j
 
-            # 4. Reconstruimos el string de la celda (ej: "C" + "66")
-            celda = f"{columna}{nueva_fila}"
+                # 4. Reconstruimos el string de la celda (ej: "C" + "66")
+                celda = f"{columna}{nueva_fila}"
 
-            sheet_plantilla[celda].value = ""
-            print("eliminando celda ", celda)
-            j = j + 1
+                sheet_plantilla[celda].value = ""
+                print("eliminando celda ", celda)
+                j = j + 1
 
         #introducir datos
+        sheet_plantilla = wb_plantilla.sheets[str(celdas["hoja_plantilla"])]
+        
         sheet_plantilla[str(celdas["celda_nombre_muestra_fabricante"])].value = Muestra.nombre + " - " + Muestra.fabricante
         sheet_plantilla[str(celdas["celda_muestra_nombre"])].value = Muestra.nombre
         sheet_plantilla[str(celdas["celda_muestra_nombre_2"])].value = Muestra.nombre
@@ -425,64 +212,11 @@ def copiar_datos_excel_config(Muestra, wb_destino, config):
 def copiar_datos_excel_absorbedores(Muestra, df, wb_destino, SWR_uv, SWA_uv, SWR_std, emitancia, temperatura,
                                     dataframe_ir, dataframe_uv, df_abs, config):
 
-    plantilla_path = elegir_plantilla(Muestra)
-
-    print(f" Intentando abrir plantilla: {plantilla_path}")
-    print(f" Intentando abrir libro de destino: {Muestra.path_output}")
-
-    #try:
-    wb_plantilla = xw.Book(plantilla_path)  # Plantilla
-
-    app = wb_destino.app  # Obtener la aplicación de Excel
-    app.display_alerts = False  # Desactivar alertas
-
-    sheet_plantilla = wb_plantilla.sheets['Results']  # Hoja de la plantilla
-
-    # introducir datos
-    sheet_plantilla["I1"].value = Muestra.proyecto
-    sheet_plantilla["I2"].value = Muestra.nombre + " - " + Muestra.fabricante
-    sheet_plantilla["K5"].value = Muestra.nombre
-    sheet_plantilla["M1"].value = Muestra.fabricante
-    sheet_plantilla["K1"].value = datetime.strptime(Muestra.fechamedida, "%d/%m/%Y")
-    sheet_plantilla["K2"].value = Muestra.id_medida
-    sheet_plantilla["I3"].value = Muestra.test
-    sheet_plantilla["I4"].value = Muestra.hours
-    sheet_plantilla["I5"].value = Muestra.meses
-    sheet_plantilla["K3"].value = str(Muestra.col_uv_ref["r_uv"])
-    sheet_plantilla["I7"].value = SWR_uv
-    sheet_plantilla["I8"].value = SWA_uv
-    sheet_plantilla["I9"].value = temperatura
-    sheet_plantilla["I11"].value = SWR_std
-
-    if "FTIR" in Muestra.tipo and Muestra.archivo_tfir:
-        sheet_plantilla["K4"].value = str(Muestra.col_ir_ref["r_ftir"])
-    else:
-        sheet_plantilla["I10"].value = ""
-        sheet_plantilla.range("Q1:S3824").value = None
-
-    sheet_plantilla.range("A5").options(index=False, header=False).value = df["µm"].values.reshape(-1, 1)
-    sheet_plantilla.range("B5").options(index=False, header=False).value = df["refl"].values.reshape(-1, 1)
-    sheet_plantilla.range("C5").options(index=False, header=False).value = df["abs"].values.reshape(-1, 1)
-
-    if "FTIR" in Muestra.tipo and Muestra.archivo_tfir:
-        sheet_plantilla.range("X2").options(index=False, header=True).value = [dataframe_ir.columns.tolist()] + dataframe_ir.values.tolist()
-    sheet_plantilla.range("AQ2").options(index=False, header=True).value = [dataframe_uv.columns.tolist()] + dataframe_uv.values.tolist()
-
-    # Copiar la hoja sin renombrarla
-    new_sheet = sheet_plantilla.copy(after=wb_destino.sheets[wb_destino.sheets.count - 1])
-
-    # Renombrar la hoja copiada
-    sheet_name = Muestra.nombre + "_" + Muestra.id_medida
-    new_sheet.name = sheet_name[:31]
-
-    wb_plantilla.close()
-
-    print(f" Archivo guardado en: {Muestra.path_output}")
-
-def copiar_datos_excel_absorbedores_config(Muestra, df, wb_destino, SWR_uv, SWA_uv, SWR_std, emitancia, temperatura,
-                                    dataframe_ir, dataframe_uv, df_abs, config):
-
     plantilla_path, celdas = elegir_plantilla_config(Muestra, config)
+    if not plantilla_path:
+        print("❌ No se pudo determinar la plantilla.")
+        return
+
     print("Celdas")
     print(celdas)
     print(f" Intentando abrir plantilla: {plantilla_path}")
@@ -540,4 +274,3 @@ def copiar_datos_excel_absorbedores_config(Muestra, df, wb_destino, SWR_uv, SWA_
     wb_plantilla.close()
 
     print(f" Archivo guardado en: {Muestra.path_output}")
-
