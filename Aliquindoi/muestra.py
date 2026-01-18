@@ -189,10 +189,7 @@ class Muestra:
         print(df_final)
         return df_final
 
-    def leer_asc(selfself, path_asc):
-        with open(path_asc, 'r') as file:
-            lines = file.readlines()
-        return lines
+
     def leer_datos_asc_columnas(self, path_asc, col_name):
         with open(path_asc, 'r') as file:
             lines = file.readlines()

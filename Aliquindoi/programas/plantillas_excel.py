@@ -3,33 +3,9 @@ import os
 import string
 import ast
 from datetime import datetime
-from openpyxl.utils import get_column_letter
 from openpyxl.utils.cell import coordinate_from_string
 
-def leer_asc_para_exportar_excel_antiguo(path_asc):
-    with open(path_asc, 'r') as file:
-        lines = file.readlines()
 
-    data_start = False
-    data = []
-    # hacer esta parte más robusta
-    for i, line in enumerate(lines):
-        if "#DATA" in line:
-            data_start = True
-        if not data_start:
-            data.append(line.strip().replace(",", "."))  # Guardar la línea tal cual antes de #DATA
-        else:
-            split_line = line.split()
-            if len(split_line) > 1:  # Asegurar que hay al menos dos elementos
-                cleaned_value = split_line[1].replace(",", ".")  # Reemplazar , por .
-                data.append(cleaned_value)  # Guardar la segunda columna ya corregida
-
-    # **Eliminar las filas 74 a 79 si hay suficientes datos**
-    del data[73:79]  # Elimina de la posición 74 a 79 inclusive
-    del data[86]
-    data[86:86] = ["", ""]  # Inserta dos elementos vacíos en la posición 86
-    
-    return data
 
 
 def leer_asc_para_exportar_excel(path_asc):

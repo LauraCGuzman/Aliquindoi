@@ -263,13 +263,7 @@ def pregunta_tipos_test():
     return resultados
 
 
-def detener_analisis():
-    respuesta = preguntar_dato_simple("Análisis de muestras", "Desea seguir analizando muestras? (y/n): ")
 
-    if (respuesta == "n") | (respuesta == 0) | (respuesta == "no"):
-        respuesta = False
-        print("Fin del programa")
-    return respuesta
 
 def nombres_muestras_auto(paths_espectofotometro, path_ftir):
     nombres_muestras = []
@@ -333,63 +327,7 @@ def nombres_muestras_auto(paths_espectofotometro, path_ftir):
         nombres_muestras_sin_duplicados = list(dict.fromkeys(nombres_muestras))  # mantiene orden de aparición
 
     return sorted(nombres_muestras_sin_duplicados)
-def nombres_muestras_preguntar():
-    """
-        Cuadro de diálogo para ingresar múltiples nombres de muestras.
 
-        Returns:
-            list: Lista de nombres de muestras ingresados.
-        """
-
-    ventana = Tk.Tk()
-    ventana.title("Ingreso de Nombres de Muestras")
-
-    nombres = []
-
-    def agregar_nombre():
-        nombre = entrada.get()
-        if nombre:
-            nombres.append(nombre)
-            lista_nombres.insert(Tk.END, nombre)
-            entrada.delete(0, Tk.END)
-
-    def borrar_nombre():
-        seleccion = lista_nombres.curselection()
-        if seleccion:
-            index = seleccion[0]
-            lista_nombres.delete(index)
-            nombres.pop(index)
-
-    def guardar_nombres():
-        ventana.destroy()  # Cierra la ventana
-
-    # Label para indicar qué ingresar
-    etiqueta = Tk.Label(ventana, text="Ingrese el nombre de la muestra:")
-    etiqueta.pack()
-
-    # Campo de entrada
-    entrada = Tk.Entry(ventana)
-    entrada.pack()
-
-    # Botón para agregar nombre
-    boton_agregar = Tk.Button(ventana, text="+", command=agregar_nombre)
-    boton_agregar.pack()
-
-    # Lista para mostrar los nombres ingresados
-    lista_nombres = Tk.Listbox(ventana)
-    lista_nombres.pack()
-
-    # Botón para borrar nombre seleccionado
-    boton_borrar = Tk.Button(ventana, text="Borrar", command=borrar_nombre)
-    boton_borrar.pack()
-
-    # Botón para guardar los nombres
-    boton_guardar = Tk.Button(ventana, text="Guardar", command=guardar_nombres)
-    boton_guardar.pack()
-
-    ventana.mainloop()
-
-    return nombres
 
 def archivo_tfir(mensaje):
     # Seleccionar archivo Excel

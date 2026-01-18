@@ -28,7 +28,9 @@ try:
     print("datos basicos: ",datos_basicos)
 
     # declaracion de variables antes de iniciar el programa.
-    archivos_ir = archivos_zero_base_uv = archivos_muestra_uv = referencias_uv = referencias_ir = path_ftir = path_espectofotometro = ""
+    # declaracion de variables antes de iniciar el programa.
+    archivos_ir = referencias_uv = referencias_ir = path_ftir = path_espectofotometro = ""
+    archivos_zero_base_uv = archivos_muestra_uv = ""
 
     # leer datos espectofotómetro/ftir si los hay
     if "FTIR" in datos_basicos["aparatos"]:
