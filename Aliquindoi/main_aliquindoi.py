@@ -1,3 +1,13 @@
+import sys
+import os
+
+# Add project root to sys.path to allow imports from Aliquindoi and user_templates
+# Assumes this file is in <project_root>/Aliquindoi/
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 import pandas as pd
 import xlwings as xw
 from openpyxl import Workbook
@@ -147,7 +157,7 @@ try:
             abs_ref_uv = pd.DataFrame()
             SWR_uv = SWA_uv = SWR_std = emitancia = ""
             dataframe_ir = pd.DataFrame() 
-             dataframe_uv = pd.DataFrame() # Add explicit init for safety
+            dataframe_uv = pd.DataFrame() # Add explicit init for safety
              
             if "FTIR" in datos_basicos["aparatos"] and archivos_ir:
                 dataframe_ir = instancias[nombre].procesar_datos_tfir()

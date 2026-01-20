@@ -14,7 +14,7 @@ from pathlib import Path
 def leer_archivo_referencias():
     directorio_script = os.path.dirname(os.path.realpath(__file__))
     archivo_referencias = os.path.normpath(
-        os.path.join(directorio_script, "../user_templates/references.xlsx"))
+        os.path.join(directorio_script, "../../user_templates/references.xlsx"))
 
     return archivo_referencias
 
