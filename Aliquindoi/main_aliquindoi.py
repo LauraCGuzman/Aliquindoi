@@ -72,27 +72,30 @@ def configure_references_uv(datos_basicos):
         
         if datos_basicos["aparatos"]["Espectrofotómetro"] == "Con ventana":
             ventana_esp = True
-            
-        referencias_uv = {"r_uv": "", "r_trans_uv": ""}
         
-        if datos_basicos["medida"] == "Absortancia":
-            r_uv = lectura_datos.elegir_columnas_referencia("absorbedores_abs", "Selecciona referencia base UV")
-        elif datos_basicos["medida"] == "Reflectancia":
-            r_uv = lectura_datos.elegir_columnas_referencia("reflectores", "Selecciona referencia base UV")
-        elif (datos_basicos["medida"] == "Transmitancia CSP"):
-            r_uv = lectura_datos.elegir_columnas_referencia("ref_trans_csp", "Selecciona referencia base UV")
-        else:
-            r_uv = ""
-        referencias_uv["r_uv"] = r_uv
+        # Solo solicitar referencias para Absortancia y Reflectancia
+        # Transmitancia CSP/PV no requieren referencias ya que solo copian datos directamente
+        if datos_basicos["medida"] in ["Absortancia", "Reflectancia"]:
+            referencias_uv = {"r_uv": "", "r_trans_uv": ""}
+            
+            if datos_basicos["medida"] == "Absortancia":
+                r_uv = lectura_datos.elegir_columnas_referencia("absorbedores_abs", "Selecciona referencia base UV")
+            elif datos_basicos["medida"] == "Reflectancia":
+                r_uv = lectura_datos.elegir_columnas_referencia("reflectores", "Selecciona referencia base UV")
+            
+            referencias_uv["r_uv"] = r_uv
 
-        if (datos_basicos["medida"] == "Absortancia") | (datos_basicos["medida"] == "Reflectancia"):
             if ventana_esp:
                 print("Ventana en UV seleccionada")
                 r_trans_uv = lectura_datos.elegir_columnas_referencia("T_ventana_uv",
                                                                       "Selecciona transmitancia de la ventana")
                 referencias_uv["r_trans_uv"] = r_trans_uv
-        print("Referencias uv seleccionadas")
-        print(referencias_uv)
+            print("Referencias uv seleccionadas")
+            print(referencias_uv)
+        else:
+            # Para Transmitancia CSP/PV, no se solicitan referencias
+            referencias_uv = {"r_uv": "", "r_trans_uv": ""}
+            print("Transmitancia CSP/PV seleccionada: no se requieren referencias")
         
     return path_espectofotometro, ventana_esp, referencias_uv
 

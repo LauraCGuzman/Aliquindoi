@@ -95,15 +95,18 @@ materiales y configuraciones. Debe tener las siguientes pestañas:
   - absorbedores_abs      (referencias para medidas de absortancia)
   - absorbedores_refl     (referencias para medidas de reflectancia FTIR)
   - reflectores           (referencias para reflectores UV)
-  - ref_trans_csp         (referencias para transmitancia CSP)
   - T_ventana_uv          (transmitancia de ventana UV)
   - T_ventana_ir          (transmitancia de ventana IR)
   - testsite              (lista de tipos de test disponibles)
   - fabricantes           (lista de fabricantes)
   - proyectos             (lista de proyectos)
 
-Durante la ejecución, el programa solicitará seleccionar las columnas
-apropiadas de estas pestañas.
+NOTA IMPORTANTE:
+  - Para medidas de REFLECTANCIA y ABSORTANCIA, el programa solicitará 
+    seleccionar las referencias apropiadas de las pestañas correspondientes.
+  - Para medidas de TRANSMITANCIA (CSP/PV), NO se solicitan referencias ya que
+    estos tipos de medida solo copian los datos directamente sin procesamiento
+    adicional.
 
 
 ═══════════════════════════════════════════════════════════════════════════════

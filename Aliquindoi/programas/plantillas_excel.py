@@ -70,7 +70,7 @@ def copiar_datos_excel(Muestra, wb_destino, config):
         - Metadata: .nombre, .fabricante, .proyecto, .fechamedida, .id_medida, .test, .hours, .meses
         - Type: .tipo_medida
         - Data Paths: .archivo_uv["path_muestras"], .archivo_uv["zero"], .archivo_uv["base"]
-        - Data Values: .col_uv_ref["r_uv"]
+        - Data Values: .col_uv_ref["r_uv"] (only used for Reflectancia)
         - Output: .path_output
     """
 
