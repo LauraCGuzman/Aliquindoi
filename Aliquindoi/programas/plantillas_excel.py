@@ -4,6 +4,8 @@ import string
 import ast
 from datetime import datetime
 from openpyxl.utils.cell import coordinate_from_string
+from openpyxl.utils import column_index_from_string, get_column_letter
+from pathlib import Path
 
 
 
@@ -28,7 +30,9 @@ def leer_asc_para_exportar_excel(path_asc):
 
 def elegir_plantilla_config(Muestra, config):
 
-    directorio_script = os.path.dirname(os.path.realpath(__file__))
+    # Use pathlib to get the directory of the current script (programas) 
+    # and then go up one level to Aliquindoi to be consistent with config relative paths
+    base_dir = Path(__file__).resolve().parent.parent 
 
     # Select key based on measurement type
     if Muestra.tipo_medida == "Reflectancia":
@@ -48,8 +52,10 @@ def elegir_plantilla_config(Muestra, config):
         print(f"❌ No se encontró configuración para '{key}' en config.ini")
         return None, {}
 
-    excel_path = os.path.normpath(
-        os.path.join(directorio_script, str(plantilla_rel_path)))
+    # Resolve the path using pathlib
+    excel_path_obj = (base_dir / str(plantilla_rel_path)).resolve()
+    excel_path = str(excel_path_obj)
+    
     celdas = config.celdas_plantillas.get(key, {})
 
     print("Plantilla elegida: ", excel_path)
@@ -160,6 +166,24 @@ def copiar_datos_excel(Muestra, wb_destino, config):
                 print("eliminando celda ", celda)
                 j = j + 1
 
+        #Eliminar contenido de celdas en función de número de medidas por muestra en horizontal
+        fila = 77
+        columna_inicio = "Q"   # primera columna válida
+        columna_fin = "Y"      # última columna posible
+
+        idx_inicio = column_index_from_string(columna_inicio)
+        idx_fin = column_index_from_string(columna_fin)
+
+        # número máximo de medidas permitido en esa fila
+        max_medidas = idx_fin - idx_inicio + 1
+
+        for i in range(n_muestras, max_medidas):
+            col_idx = idx_inicio + i
+            col_letra = get_column_letter(col_idx)
+            celda = f"{col_letra}{fila}"
+
+            sheet_plantilla[celda].value = ""
+            print("eliminando celda", celda)
         #introducir datos
         sheet_plantilla = wb_plantilla.sheets[str(celdas["hoja_plantilla"])]
         
