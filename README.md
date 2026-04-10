@@ -50,6 +50,17 @@ El programa en producción usa `xlwings` para escribir directamente en plantilla
 
 El motor de cálculo (`muestra.py`) es independiente de la GUI y del formato de salida, y es el que se usa en esta demo.
 
+### Código del programa original
+
+La carpeta `Aliquindoi/` contiene el código completo del programa en producción:
+
+- `muestra.py` — motor de cálculo: objeto de dominio con toda la lógica óptica (lectura de espectros UV e IR, cálculo de reflectancia/absortancia/transmitancia, integración numérica de la ley de Planck para la emitancia térmica)
+- `main_aliquindoi.py` — orquestador principal: setup, configuración de referencias por instrumento, loop de muestras, manejo de errores y limpieza de recursos
+- `programas/lectura_datos.py` — capa de entrada: GUI Tkinter, diálogos de selección de archivos, búsqueda automática de muestras y referencias en el sistema de ficheros
+- `programas/plantillas_excel.py` — capa de salida: escritura en plantillas Excel DLR/CIEMAT vía xlwings
+
+Este código no es ejecutable fuera del entorno de laboratorio (requiere Windows + Excel + plantillas propietarias), pero refleja la arquitectura real del sistema y las decisiones de diseño tomadas en producción.
+
 ## Dependencias
 
 ```
