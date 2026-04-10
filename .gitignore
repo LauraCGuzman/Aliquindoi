@@ -1,0 +1,29 @@
+# Entorno virtual
+.venv/
+.venv
+.claude
+
+# IDEs
+.idea/
+.vscode/
+
+# Build artifacts
+build/
+dist/
+*.spec
+
+# Plantillas y datos propietarios DLR (no publicar)
+user_templates/plantillas/
+user_templates/references.xlsx
+user_templates/_legacy/
+
+# Datos reales
+datos_medidas.xlsx
+
+# Salida generada por el demo (se genera al ejecutar)
+demo_output/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo

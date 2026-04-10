@@ -9,6 +9,28 @@ import os
 class Muestra:
     def __init__(self, nombre_muestra, archivos_ir, file_path_zero_base_uv, file_paths_muestras_uv, referencias_ir,
                  referencias_uv, datos_basicos, excel_path_output):
+        """
+        Inicializa una instancia de Muestra.
+
+        Args:
+            nombre_muestra (str): Nombre de la muestra.
+            archivos_ir (dict): Diccionario con rutas de archivos FTIR (zero, base, ventana, path_muestras).
+            file_path_zero_base_uv (dict): Diccionario con rutas UV (ZeroLine, BaseLine, ventana).
+            file_paths_muestras_uv (list): Lista de rutas de archivos de muestra UV.
+            referencias_ir (dict): Diccionario con referencias FTIR ('r_ftir', 'r_trans_ir').
+            referencias_uv (dict): Diccionario con referencias UV ('r_uv', 'r_trans_uv').
+            datos_basicos (dict): Metadatos del test. Debe contener las claves:
+                - 'medida' (str): "Reflectancia", "Absortancia", etc.
+                - 'aparatos' (dict): Claves "FTIR", "Espectrofotómetro".
+                - 'test' (str): Tipo de test.
+                - 'fabricante' (str): Nombre del fabricante.
+                - 'proyecto' (str): Nombre del proyecto.
+                - 'hours' (int/None): Horas de exposición.
+                - 'months' (int/None): Meses de exposición.
+                - 'temperatura' (float/None): Temperatura.
+                - 'fecha_medida' (dict): {'dd/mm/yyyy': str, 'yyyyMMdd': str}.
+            excel_path_output (str): Ruta del archivo Excel de salida.
+        """
         self.nombre = nombre_muestra
         self.archivo_tfir = archivos_ir
         self.col_ir_ref = referencias_ir
@@ -41,7 +63,7 @@ class Muestra:
         directorio_script = os.path.dirname(os.path.realpath(__file__))
         print(directorio_script)
         archivo_referencias = os.path.normpath(
-            os.path.join(directorio_script, "para_el_usuario/references.xlsx"))
+            os.path.join(directorio_script, "../user_templates/references.xlsx"))
         print(archivo_referencias)
         return archivo_referencias
 
@@ -189,10 +211,7 @@ class Muestra:
         print(df_final)
         return df_final
 
-    def leer_asc(selfself, path_asc):
-        with open(path_asc, 'r') as file:
-            lines = file.readlines()
-        return lines
+
     def leer_datos_asc_columnas(self, path_asc, col_name):
         with open(path_asc, 'r') as file:
             lines = file.readlines()
